@@ -266,6 +266,27 @@ td.col-qty { text-align: center; }
 .spec-text{ font-family: 'Courier New', monospace; font-size: 10px; color: #444; }
 .nil      { color: #ccc; }
 
+/* ── 3D context menu ── */
+#ctx-menu {
+  display: none;
+  position: fixed;
+  background: #fff;
+  border: 1px solid #aaa;
+  box-shadow: 2px 3px 6px rgba(0,0,0,0.15);
+  z-index: 1000;
+  min-width: 150px;
+  padding: 3px 0;
+}
+.ctx-item {
+  padding: 6px 14px;
+  font-size: 12px;
+  color: #222;
+  cursor: pointer;
+  white-space: nowrap;
+  font-family: 'Segoe UI', Arial, sans-serif;
+}
+.ctx-item:hover { background: #f0f0f0; }
+
 /* ── Empty state ── */
 .empty-state {
   margin: 20px; padding: 32px 20px;
@@ -358,6 +379,11 @@ td.col-qty { text-align: center; }
       <p>Adjust search or filters</p>
     </div>
   </div>
+</div>
+
+<!-- ── 3D context menu ───────────────────────────────────────────────────────── -->
+<div id="ctx-menu">
+  <div class="ctx-item" id="ctx-scroll">Scroll to item</div>
 </div>
 
 <!-- ── 3D Viewer ──────────────────────────────────────────────────────────── -->
@@ -786,6 +812,37 @@ document.addEventListener('3d-select', e => {
   });
 });
 
+// ─── 3D context menu ─────────────────────────────────────────────────────────
+const ctxMenu = document.getElementById('ctx-menu');
+let   ctxTargetId = null;
+
+document.addEventListener('3d-contextmenu', e => {
+  ctxTargetId = e.detail.id;
+  // Keep menu inside viewport
+  const menuW = 160, menuH = 36;
+  const x = Math.min(e.detail.x, window.innerWidth  - menuW);
+  const y = Math.min(e.detail.y, window.innerHeight - menuH);
+  ctxMenu.style.left    = x + 'px';
+  ctxMenu.style.top     = y + 'px';
+  ctxMenu.style.display = 'block';
+});
+
+document.getElementById('ctx-scroll').addEventListener('click', () => {
+  ctxMenu.style.display = 'none';
+  if (!ctxTargetId) return;
+  ancestorIds(ctxTargetId).forEach(aid => { const n = byId(aid); if (n) n.expanded = true; });
+  render();
+  requestAnimationFrame(() => {
+    document.querySelector(`#tbody tr[data-id="${ctxTargetId}"]`)
+      ?.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+  });
+  ctxTargetId = null;
+});
+
+// Hide context menu on any click or Escape
+document.addEventListener('click',   () => { ctxMenu.style.display = 'none'; });
+document.addEventListener('keydown', e => { if (e.key === 'Escape') ctxMenu.style.display = 'none'; });
+
 // ─── Toolbar events ───────────────────────────────────────────────────────────
 document.getElementById('inp-search').addEventListener('input', e => { search = e.target.value; render(); });
 document.getElementById('btn-expand').addEventListener('click',   () => { allNodes.forEach(n => { n.expanded = true; });                render(); });
@@ -1005,15 +1062,26 @@ const raycaster = new THREE.Raycaster();
 const pointer   = new THREE.Vector2();
 let   _curSel   = null; // track current selection for toggle
 
-canvas.addEventListener('click', e => {
+function raycastPart(e) {
   const rect = canvas.getBoundingClientRect();
   pointer.x =  ((e.clientX - rect.left)  / rect.width)  * 2 - 1;
   pointer.y = -((e.clientY - rect.top)   / rect.height) * 2 + 1;
   raycaster.setFromCamera(pointer, camera);
   const hits = raycaster.intersectObjects(allMeshes, false).filter(h => h.object.isMesh);
-  const id   = hits.length ? hits[0].object.userData.partId : null;
-  _curSel = id === _curSel ? null : id;
+  return hits.length ? hits[0].object.userData.partId : null;
+}
+
+canvas.addEventListener('click', e => {
+  const id = raycastPart(e);
+  _curSel  = id === _curSel ? null : id;
   document.dispatchEvent(new CustomEvent('3d-select', { detail: { id: _curSel } }));
+});
+
+canvas.addEventListener('contextmenu', e => {
+  e.preventDefault();
+  const id = raycastPart(e);
+  if (!id) return;
+  document.dispatchEvent(new CustomEvent('3d-contextmenu', { detail: { id, x: e.clientX, y: e.clientY } }));
 });
 
 // ── Resize ────────────────────────────────────────────────────────────────────
