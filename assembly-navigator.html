@@ -806,10 +806,6 @@ document.addEventListener('3d-select', e => {
   }
   render();
   document.dispatchEvent(new CustomEvent('asm-select', { detail: { id: selectedId } }));
-  // Scroll selected row into view
-  requestAnimationFrame(() => {
-    document.querySelector('#tbody tr.selected')?.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
-  });
 });
 
 // ─── 3D context menu ─────────────────────────────────────────────────────────
