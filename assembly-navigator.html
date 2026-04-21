@@ -9,7 +9,7 @@
 html, body { height: 100%; overflow: hidden; }
 
 body {
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: 'Segoe UI', Arial, sans-serif;
   font-size: 12px;
   color: #111;
   background: #d8d8d8;
@@ -86,9 +86,7 @@ body {
 
 /* ── Assembly root row ── */
 tr.asm-root td {
-  background: #f0f0f0;
   font-weight: bold;
-  border-bottom: 2px solid #bbb;
   color: #111;
 }
 
@@ -122,7 +120,7 @@ tr.asm-root td {
   display: flex; align-items: center; justify-content: center;
   background: #fff; border: 1px solid #bbb;
   cursor: pointer; color: #555; font-size: 12px;
-  line-height: 1; font-family: Arial, sans-serif;
+  line-height: 1; font-family: 'Segoe UI', Arial, sans-serif;
 }
 .hdr-btn:hover { background: #e4e4e4; border-color: #888; }
 .hdr-btn.on { background: #e4e4e4; border-color: #555; font-weight: bold; color: #111; }
@@ -138,7 +136,7 @@ tr.asm-root td {
 .search-input {
   background: #fff; border: 1px solid #bbb;
   color: #111; padding: 3px 6px;
-  font-size: 11px; outline: none; font-family: Arial, sans-serif;
+  font-size: 11px; outline: none; font-family: 'Segoe UI', Arial, sans-serif;
   min-width: 0;
 }
 .search-input:focus { border-color: #666; }
@@ -150,7 +148,7 @@ tr.asm-root td {
   color: #333; padding: 3px 7px;
   font-size: 11px; cursor: pointer;
   white-space: nowrap; user-select: none; flex-shrink: 0;
-  font-family: Arial, sans-serif;
+  font-family: 'Segoe UI', Arial, sans-serif;
 }
 .tb-btn:hover { background: #ebebeb; border-color: #888; }
 .tb-btn.active { background: #ddd; border-color: #666; color: #111; font-weight: bold; }
@@ -547,8 +545,8 @@ function bindHeaderDrag() {
       const tgtIdx = COLS.findIndex(c => c.key === dropKey);
       COLS.splice(dropSide === 'after' ? tgtIdx + 1 : tgtIdx, 0, col);
       dragKey = dropKey = dropSide = null;
+      saveColConfig();
       render();
-      // re-sync column config checkboxes to new order
       renderColConfig();
     });
 
@@ -647,6 +645,28 @@ function updateStats(visible) {
 function render() { renderHeader(); renderRows(); }
 
 // ─── Column config UI ─────────────────────────────────────────────────────────
+const COL_STORAGE_KEY = 'asm-nav-cols';
+
+function saveColConfig() {
+  const state = COLS.map(c => ({ key: c.key, visible: c.visible }));
+  localStorage.setItem(COL_STORAGE_KEY, JSON.stringify(state));
+}
+
+function loadColConfig() {
+  try {
+    const saved = JSON.parse(localStorage.getItem(COL_STORAGE_KEY) || '[]');
+    // Restore visibility; also honour saved order
+    const ordered = [];
+    saved.forEach(s => {
+      const col = COLS.find(c => c.key === s.key);
+      if (col) { if (!col.locked) col.visible = s.visible; ordered.push(col); }
+    });
+    // Append any new columns not in saved state
+    COLS.forEach(c => { if (!ordered.includes(c)) ordered.push(c); });
+    COLS.length = 0; ordered.forEach(c => COLS.push(c));
+  } catch (_) {}
+}
+
 function renderColConfig() {
   document.getElementById('col-items').innerHTML = COLS.map(c => `
     <label class="col-item ${c.locked ? 'locked' : ''}">
@@ -656,7 +676,7 @@ function renderColConfig() {
   document.getElementById('col-items').querySelectorAll('input').forEach(cb => {
     cb.addEventListener('change', e => {
       const col = COLS.find(c => c.key === e.target.dataset.key);
-      if (col && !col.locked) { col.visible = e.target.checked; render(); }
+      if (col && !col.locked) { col.visible = e.target.checked; saveColConfig(); render(); }
     });
   });
 }
@@ -838,6 +858,7 @@ allNodes = [{
   expanded: true,
 }, ...componentNodes];
 renderProductHeader();
+loadColConfig();
 renderColConfig();
 buildEditorContent();
 render();
