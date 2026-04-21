@@ -767,6 +767,25 @@ document.addEventListener('click', e => {
   }
 });
 
+// ─── 3D → navigator selection bridge ─────────────────────────────────────────
+document.addEventListener('3d-select', e => {
+  const incoming = e.detail.id;
+  selectedId = incoming === selectedId ? null : incoming;
+  // Ensure ancestor nodes are expanded so the selected row is visible
+  if (selectedId) {
+    ancestorIds(selectedId).forEach(aid => {
+      const n = byId(aid);
+      if (n) n.expanded = true;
+    });
+  }
+  render();
+  document.dispatchEvent(new CustomEvent('asm-select', { detail: { id: selectedId } }));
+  // Scroll selected row into view
+  requestAnimationFrame(() => {
+    document.querySelector('#tbody tr.selected')?.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+  });
+});
+
 // ─── Toolbar events ───────────────────────────────────────────────────────────
 document.getElementById('inp-search').addEventListener('input', e => { search = e.target.value; render(); });
 document.getElementById('btn-expand').addEventListener('click',   () => { allNodes.forEach(n => { n.expanded = true; });                render(); });
@@ -980,6 +999,22 @@ function highlight(id) {
 
 // ── Event bridge: navigator → viewer ──────────────────────────────────────────
 document.addEventListener('asm-select', e => highlight(e.detail.id));
+
+// ── 3D picking: click mesh → select in navigator ───────────────────────────────
+const raycaster = new THREE.Raycaster();
+const pointer   = new THREE.Vector2();
+let   _curSel   = null; // track current selection for toggle
+
+canvas.addEventListener('click', e => {
+  const rect = canvas.getBoundingClientRect();
+  pointer.x =  ((e.clientX - rect.left)  / rect.width)  * 2 - 1;
+  pointer.y = -((e.clientY - rect.top)   / rect.height) * 2 + 1;
+  raycaster.setFromCamera(pointer, camera);
+  const hits = raycaster.intersectObjects(allMeshes, false).filter(h => h.object.isMesh);
+  const id   = hits.length ? hits[0].object.userData.partId : null;
+  _curSel = id === _curSel ? null : id;
+  document.dispatchEvent(new CustomEvent('3d-select', { detail: { id: _curSel } }));
+});
 
 // ── Resize ────────────────────────────────────────────────────────────────────
 const container = canvas.parentElement;
