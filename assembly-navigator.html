@@ -1,0 +1,806 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Assembly Navigator</title>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { height: 100%; overflow: hidden; }
+
+body {
+  font-family: Arial, Helvetica, sans-serif;
+  font-size: 12px;
+  color: #111;
+  background: #d8d8d8;
+  display: flex;
+}
+
+/* ── Editor placeholder ── */
+.editor-area {
+  flex: 1; min-width: 0;
+  display: flex; flex-direction: column;
+  overflow: hidden;
+  background: repeating-linear-gradient(
+    -45deg, #dedede 0, #dedede 1px, #e8e8e8 1px, #e8e8e8 9px
+  );
+}
+.tab-bar {
+  height: 28px;
+  background: #ebebeb;
+  border-bottom: 1px solid #aaa;
+  display: flex; align-items: flex-end;
+  padding: 0 8px; gap: 2px; flex-shrink: 0;
+}
+.tab {
+  padding: 3px 12px 4px;
+  font-size: 11px; color: #888; cursor: default; user-select: none;
+  border: 1px solid #bbb; border-bottom: none;
+  background: #ddd;
+}
+.tab.active { color: #222; background: #ebebeb; border-color: #aaa; }
+.code-area {
+  flex: 1; overflow: auto;
+  padding: 14px 0;
+  font-family: 'Courier New', monospace;
+  font-size: 11px; line-height: 1.7; color: #aaa;
+}
+.code-line { display: flex; padding: 0 18px; }
+.ln { color: #ccc; width: 24px; text-align: right; margin-right: 14px; user-select: none; flex-shrink: 0; }
+.kw { color: #aaa; } .str { color: #999; } .cm { color: #bbb; font-style: italic; }
+.prop { color: #888; } .num { color: #aaa; } .punc { color: #ccc; }
+
+/* ── Panel ── */
+.panel {
+  width: 350px; min-width: 260px; max-width: 80vw;
+  height: 100%; display: flex; flex-direction: column;
+  background: #fff;
+  border-right: 2px solid #aaa;
+  position: relative; flex-shrink: 0; overflow: hidden;
+  order: -1;
+}
+
+/* ── Drag-resize handle ── */
+.resize-handle {
+  position: absolute; right: 0; top: 0; bottom: 0;
+  width: 4px; cursor: col-resize; z-index: 50;
+}
+.resize-handle::after {
+  content: ''; position: absolute;
+  left: 1px; top: 0; bottom: 0; width: 2px;
+  background: transparent; transition: background 0.15s;
+}
+.resize-handle:hover::after,
+.resize-handle.active::after { background: #555; }
+
+/* ── Panel header ── */
+.pnl-header {
+  background: #f0f0f0;
+  border-bottom: 1px solid #bbb;
+  padding: 6px 8px;
+  display: flex; align-items: center; gap: 7px;
+  flex-shrink: 0; min-width: 0;
+}
+.prod-icon {
+  width: 22px; height: 22px; flex-shrink: 0;
+  border: 1px solid #aaa; background: #e4e4e4;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 12px; color: #555;
+}
+.prod-text { flex: 1; min-width: 0; overflow: hidden; }
+.prod-name {
+  font-size: 12px; font-weight: bold;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: block;
+}
+.prod-chips { display: flex; gap: 3px; margin-top: 2px; flex-wrap: nowrap; overflow: hidden; }
+.chip {
+  border: 1px solid #bbb; background: #fff;
+  padding: 0 4px; font-size: 9px; color: #666;
+  white-space: nowrap; flex-shrink: 0;
+}
+.hdr-btn {
+  width: 20px; height: 20px; flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center;
+  background: #fff; border: 1px solid #bbb;
+  cursor: pointer; color: #555; font-size: 12px;
+  line-height: 1; font-family: Arial, sans-serif;
+}
+.hdr-btn:hover { background: #e4e4e4; border-color: #888; }
+.hdr-btn.on { background: #e4e4e4; border-color: #555; font-weight: bold; color: #111; }
+
+/* ── Toolbar ── */
+.toolbar {
+  background: #f8f8f8; border-bottom: 1px solid #ccc;
+  padding: 5px 7px; display: flex; flex-direction: column;
+  gap: 4px; flex-shrink: 0;
+}
+.tb-row { display: flex; gap: 4px; align-items: center; }
+
+.search-input {
+  background: #fff; border: 1px solid #bbb;
+  color: #111; padding: 3px 6px;
+  font-size: 11px; outline: none; font-family: Arial, sans-serif;
+  min-width: 0;
+}
+.search-input:focus { border-color: #666; }
+.search-input::placeholder { color: #bbb; }
+
+.tb-btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: 3px;
+  background: #fff; border: 1px solid #bbb;
+  color: #333; padding: 3px 7px;
+  font-size: 11px; cursor: pointer;
+  white-space: nowrap; user-select: none; flex-shrink: 0;
+  font-family: Arial, sans-serif;
+}
+.tb-btn:hover { background: #ebebeb; border-color: #888; }
+.tb-btn.active { background: #ddd; border-color: #666; color: #111; font-weight: bold; }
+.tb-btn.sq { padding: 3px 6px; }
+
+/* ── Pre-filter dropdown ── */
+.pflt-wrap { position: relative; flex-shrink: 0; }
+.pflt-panel {
+  display: none;
+  position: absolute; top: calc(100% + 3px); left: 0;
+  background: #fff; border: 1px solid #aaa;
+  min-width: 200px; z-index: 300;
+  box-shadow: 2px 3px 6px rgba(0,0,0,0.15);
+}
+.pflt-panel.open { display: block; }
+.pflt-hd {
+  padding: 4px 8px;
+  font-size: 10px; font-weight: bold; color: #666;
+  border-bottom: 1px solid #ddd; margin-bottom: 2px;
+  text-transform: uppercase; letter-spacing: 0.4px;
+}
+.pflt-opt {
+  display: flex; align-items: baseline; gap: 8px;
+  padding: 5px 10px; cursor: pointer;
+}
+.pflt-opt:hover { background: #f0f0f0; }
+.pflt-key  { font-family: 'Courier New', monospace; font-size: 11px; font-weight: bold; color: #222; }
+.pflt-desc { font-size: 10px; color: #888; }
+
+/* ── Column config panel ── */
+.col-wrap { position: relative; }
+.col-panel {
+  display: none;
+  position: absolute; top: calc(100% + 3px); right: 0;
+  background: #fff; border: 1px solid #aaa;
+  padding: 4px; min-width: 160px; z-index: 300;
+  box-shadow: 2px 3px 6px rgba(0,0,0,0.18);
+}
+.col-panel.open { display: block; }
+.col-hd {
+  padding: 4px 8px;
+  font-size: 10px; font-weight: bold; color: #666;
+  border-bottom: 1px solid #ddd; margin-bottom: 2px;
+  text-transform: uppercase; letter-spacing: 0.4px;
+}
+.col-item {
+  display: flex; align-items: center; gap: 6px;
+  padding: 4px 8px; cursor: pointer;
+  font-size: 11px; color: #222;
+}
+.col-item:hover { background: #f0f0f0; }
+.col-item.locked { opacity: 0.4; cursor: not-allowed; }
+.col-item.locked:hover { background: transparent; }
+.col-item input[type=checkbox] { width: 12px; height: 12px; flex-shrink: 0; cursor: pointer; }
+
+/* ── Stats bar ── */
+.stats-bar {
+  background: #f8f8f8; border-bottom: 1px solid #e0e0e0;
+  padding: 3px 8px;
+  font-size: 10px; color: #777;
+  display: flex; align-items: center; gap: 10px;
+  flex-shrink: 0; overflow: hidden;
+}
+.sv { font-weight: bold; color: #222; }
+.fbadge {
+  margin-left: auto;
+  display: flex; align-items: center; gap: 3px;
+  border: 1px solid #aaa; background: #e8e8e8;
+  color: #333; padding: 1px 5px;
+  font-size: 10px; flex-shrink: 0; white-space: nowrap;
+}
+.fbadge .x { cursor: pointer; color: #666; font-size: 11px; line-height: 1; }
+.fbadge .x:hover { color: #111; }
+
+/* ── Table ── */
+.table-wrap { flex: 1; overflow: auto; background: #fff; }
+table { width: 100%; border-collapse: collapse; table-layout: fixed; }
+thead { position: sticky; top: 0; z-index: 10; }
+th {
+  background: #f0f0f0;
+  border-bottom: 2px solid #aaa;
+  border-right: 1px solid #ddd;
+  padding: 5px 7px;
+  text-align: left; font-size: 10px; font-weight: bold;
+  color: #555; text-transform: uppercase; letter-spacing: 0.3px;
+  white-space: nowrap; user-select: none;
+  overflow: hidden; text-overflow: ellipsis;
+}
+th:last-child { border-right: none; }
+th[draggable] { cursor: grab; }
+th[draggable]:active { cursor: grabbing; }
+th.col-dragging { opacity: 0.35; }
+th.drop-before { border-left:  2px solid #333 !important; }
+th.drop-after  { border-right: 2px solid #333 !important; }
+th.col-name { width: auto; }
+th.col-id   { width: 112px; }
+th.col-qty  { width: 38px; text-align: center; }
+th.col-mat  { width: 138px; }
+th.col-geo  { width: 118px; }
+th.col-spec { width: 130px; }
+th.col-desc { width: 150px; }
+
+tbody tr { border-bottom: 1px solid #efefef; cursor: default; }
+tbody tr:nth-child(even) { background: #fafafa; }
+tbody tr:hover    { background: #f0f0f0; }
+tbody tr.selected { background: #ddd; }
+
+td {
+  padding: 4px 7px;
+  border-right: 1px solid #efefef;
+  vertical-align: middle; white-space: nowrap;
+  overflow: hidden; text-overflow: ellipsis; max-width: 0;
+  color: #222;
+}
+td:last-child { border-right: none; }
+td.col-qty { text-align: center; }
+
+/* ── Tree cell ── */
+.tree-cell { display: flex; align-items: center; overflow: hidden; }
+.indent { flex-shrink: 0; }
+.xbtn {
+  width: 14px; height: 14px; flex-shrink: 0;
+  display: inline-flex; align-items: center; justify-content: center;
+  cursor: pointer; color: #666; font-size: 9px; line-height: 1;
+}
+.xbtn:hover { color: #000; }
+.xbtn.leaf { cursor: default; color: #ccc; pointer-events: none; }
+.lbl { margin-left: 4px; overflow: hidden; text-overflow: ellipsis; font-size: 12px; color: #333; }
+.lbl.p { font-weight: bold; color: #111; }
+
+/* ── Cell text ── */
+.id-code  { font-family: 'Courier New', monospace; font-size: 10px; color: #555; }
+.qty-pill { font-size: 11px; font-weight: bold; color: #333; }
+.mat-tag  { font-size: 11px; color: #333; }
+.geo-tag  { font-family: 'Courier New', monospace; font-size: 10px; color: #555; }
+.spec-text{ font-family: 'Courier New', monospace; font-size: 10px; color: #444; }
+.nil      { color: #ccc; }
+
+/* ── Empty state ── */
+.empty-state {
+  margin: 20px; padding: 32px 20px;
+  border: 2px dashed #ccc;
+  text-align: center; color: #999;
+}
+.empty-state h3 { font-size: 12px; margin-bottom: 4px; }
+.empty-state p  { font-size: 11px; color: #bbb; }
+</style>
+</head>
+<body>
+
+<!-- ── Assembly Navigator Panel ─────────────────────────────────────────── -->
+<div class="panel" id="panel">
+  <div class="resize-handle" id="rhandle"></div>
+
+  <div class="pnl-header">
+    <div class="prod-icon">[ ]</div>
+    <div class="prod-text">
+      <span class="prod-name" id="hdr-name">Loading…</span>
+      <div class="prod-chips" id="hdr-chips"></div>
+    </div>
+    <button class="hdr-btn" id="btn-widen" title="Expand panel">
+      <span id="widen-icon">&raquo;</span>
+    </button>
+  </div>
+
+  <div class="toolbar">
+    <!-- row 1: filter input -->
+    <div class="tb-row">
+      <div class="pflt-wrap" id="pflt-wrap">
+        <button class="tb-btn sq" id="btn-pflt" title="Filter by field">
+          <svg width="11" height="11" viewBox="0 0 11 11" fill="none">
+            <path d="M1 1.5h9L6.5 5v4.5l-2-1V5L1 1.5z" stroke="currentColor" stroke-width="1.2" stroke-linejoin="round"/>
+          </svg>
+        </button>
+        <div class="pflt-panel" id="pflt-panel">
+          <div class="pflt-hd">Filter by field</div>
+          <div class="pflt-opt" data-prefix=":material ">
+            <span class="pflt-key">:material</span>
+            <span class="pflt-desc">filter by material type</span>
+          </div>
+          <div class="pflt-opt" data-prefix=":geometry ">
+            <span class="pflt-key">:geometry</span>
+            <span class="pflt-desc">filter by geometry type</span>
+          </div>
+        </div>
+      </div>
+      <input class="search-input" id="inp-search" placeholder="Filter" autocomplete="off" style="flex:1">
+      <div class="col-wrap">
+        <button class="tb-btn sq" id="btn-cols" title="Configure columns">Cols</button>
+        <div class="col-panel" id="col-panel">
+          <div class="col-hd">Visible Columns</div>
+          <div id="col-items"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- row 2: tree expand/collapse (hidden) -->
+    <div class="tb-row" id="row-expand-collapse" style="display:none">
+      <button class="tb-btn" id="btn-expand"  style="flex:1">&#9660; Expand All</button>
+      <button class="tb-btn" id="btn-collapse" style="flex:1">&#9650; Collapse All</button>
+    </div>
+  </div>
+
+  <div class="stats-bar" id="stats-bar"></div>
+
+  <div class="table-wrap">
+    <table id="nav-table">
+      <thead><tr id="thead-row"></tr></thead>
+      <tbody id="tbody"></tbody>
+    </table>
+    <div class="empty-state" id="empty-state" style="display:none">
+      <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.3"
+           style="display:block;margin:0 auto;opacity:0.2">
+        <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
+      </svg>
+      <h3>No results</h3>
+      <p>Adjust search or filters</p>
+    </div>
+  </div>
+</div>
+
+<!-- ── Simulated editor area ──────────────────────────────────────────────── -->
+<div class="editor-area">
+  <div class="tab-bar">
+    <div class="tab active">assembly.json</div>
+    <div class="tab">toaster.ts</div>
+    <div class="tab">bom.csv</div>
+  </div>
+  <div class="code-area" id="code-area"></div>
+</div>
+
+<script>
+// ─── Assembly data ────────────────────────────────────────────────────────────
+const ASSEMBLY = {"assembly":{"product_name":"Toaster","product_id":"TOASTER-001","version":"2.0","description":"Standard 2-slice pop-up toaster assembly","units":"mm","coordinate_system":"right-hand Cartesian","overall_dimensions":{"length_mm":280,"width_mm":120,"height_mm":100},"components":[{"id":"COMP-001","name":"Outer Housing","quantity":1,"material":"Stainless Steel","sub_components":[{"id":"COMP-001-01","name":"Top Cover","quantity":1,"material":"Stainless Steel","geometry":{"type":"box","dimensions":{"length_mm":280,"width_mm":120,"height_mm":2},"origin":{"x":0,"y":0,"z":98}}},{"id":"COMP-001-02","name":"Side Panels","quantity":2,"material":"Stainless Steel","geometry":{"type":"box","dimensions":{"length_mm":280,"width_mm":2,"height_mm":100}}},{"id":"COMP-001-03","name":"Base Plate","quantity":1,"material":"Plastic (ABS)","geometry":{"type":"box","dimensions":{"length_mm":280,"width_mm":120,"height_mm":3},"origin":{"x":0,"y":0,"z":0}}},{"id":"COMP-001-04","name":"Crumb Tray","quantity":1,"material":"Stainless Steel","geometry":{"type":"box","dimensions":{"length_mm":238,"width_mm":98,"height_mm":8},"origin":{"x":21,"y":11,"z":0}}}]},{"id":"COMP-002","name":"Heating Assembly","quantity":1,"sub_components":[{"id":"COMP-002-01","name":"Heating Element","quantity":4,"material":"Nichrome Wire","specification":"800W rated","geometry":{"type":"flat_coil_panel","dimensions":{"length_mm":200,"width_mm":1.5,"height_mm":85}}},{"id":"COMP-002-02","name":"Mica Sheets (Insulator)","quantity":4,"material":"Mica","geometry":{"type":"box","dimensions":{"length_mm":200,"width_mm":1,"height_mm":85}}},{"id":"COMP-002-03","name":"Element Support Frame","quantity":2,"material":"Stainless Steel","geometry":{"type":"box","dimensions":{"length_mm":200,"width_mm":5,"height_mm":85}}}]},{"id":"COMP-003","name":"Carriage Mechanism","quantity":1,"description":"Bread lowering and ejection mechanism","sub_components":[{"id":"COMP-003-01","name":"Carriage Lever","quantity":1,"material":"Plastic (ABS)","geometry":{"type":"box","dimensions":{"length_mm":15,"width_mm":15,"height_mm":40},"origin":{"x":255,"y":55,"z":20}}},{"id":"COMP-003-02","name":"Carriage Rack","quantity":1,"material":"Stainless Steel","geometry":{"type":"box","dimensions":{"length_mm":200,"width_mm":80,"height_mm":5},"origin":{"x":40,"y":20,"z":15}}},{"id":"COMP-003-03","name":"Return Spring","quantity":1,"material":"Spring Steel","geometry":{"type":"coil_spring","dimensions":{"outer_diameter_mm":10,"wire_diameter_mm":1,"free_length_mm":50,"compressed_length_mm":20,"num_coils":12},"origin":{"x":255,"y":60,"z":10}}},{"id":"COMP-003-04","name":"Latch Assembly","quantity":1,"material":"Steel","sub_components":[{"id":"COMP-003-04-01","name":"Latch Hook","quantity":1,"material":"Steel","geometry":{"type":"L_bracket","dimensions":{"length_mm":20,"width_mm":5,"height_mm":15,"hook_depth_mm":5},"origin":{"x":252,"y":58,"z":18}}},{"id":"COMP-003-04-02","name":"Latch Spring","quantity":1,"material":"Spring Steel","geometry":{"type":"coil_spring","dimensions":{"outer_diameter_mm":5,"wire_diameter_mm":0.5,"free_length_mm":15,"compressed_length_mm":8,"num_coils":8},"origin":{"x":254,"y":60,"z":22}}}]}]},{"id":"COMP-004","name":"Control Assembly","quantity":1,"sub_components":[{"id":"COMP-004-01","name":"Browning Control Dial","quantity":1,"material":"Plastic (ABS)","geometry":{"type":"cylinder","dimensions":{"diameter_mm":20,"height_mm":10},"origin":{"x":230,"y":1,"z":40},"rotation_deg":{"rx":90,"ry":0,"rz":0}}},{"id":"COMP-004-02","name":"Thermostat / Timer PCB","quantity":1,"geometry":{"type":"box","dimensions":{"length_mm":60,"width_mm":40,"height_mm":2},"origin":{"x":190,"y":40,"z":12}}},{"id":"COMP-004-03","name":"Solenoid / Bimetallic Strip","quantity":1,"geometry":{"type":"box","dimensions":{"length_mm":40,"width_mm":5,"height_mm":3},"origin":{"x":200,"y":45,"z":16}}},{"id":"COMP-004-04","name":"Cancel Button","quantity":1,"material":"Plastic (ABS)","geometry":{"type":"cylinder","dimensions":{"diameter_mm":12,"height_mm":8},"origin":{"x":210,"y":1,"z":40},"rotation_deg":{"rx":90,"ry":0,"rz":0}}},{"id":"COMP-004-05","name":"Defrost / Reheat Buttons","quantity":2,"material":"Plastic (ABS)","geometry":{"type":"cylinder","dimensions":{"diameter_mm":12,"height_mm":8}}}]},{"id":"COMP-005","name":"Electrical Assembly","quantity":1,"sub_components":[{"id":"COMP-005-01","name":"Power Cord","quantity":1,"specification":"1000mm, 10A rated","geometry":{"type":"cylinder","dimensions":{"diameter_mm":6,"height_mm":1000},"origin":{"x":10,"y":60,"z":5},"rotation_deg":{"rx":90,"ry":0,"rz":0}}},{"id":"COMP-005-02","name":"Plug","quantity":1,"material":"Plastic (ABS)","geometry":{"type":"box","dimensions":{"length_mm":50,"width_mm":35,"height_mm":25},"origin":{"x":-60,"y":42,"z":0}}},{"id":"COMP-005-03","name":"Internal Wiring Harness","quantity":1,"material":"Copper wire with PVC insulation","geometry":{"type":"cable_bundle","dimensions":{"bundle_diameter_mm":8,"total_length_mm":350},"origin":{"x":10,"y":60,"z":10}}},{"id":"COMP-005-04","name":"Fuse","quantity":1,"specification":"13A","geometry":{"type":"cylinder","dimensions":{"diameter_mm":6,"height_mm":25},"origin":{"x":15,"y":60,"z":8},"rotation_deg":{"rx":0,"ry":90,"rz":0}}}]},{"id":"COMP-006","name":"Feet / Base Pads","quantity":4,"material":"Rubber","description":"Anti-slip feet attached to the base plate","geometry":{"type":"cylinder","dimensions":{"diameter_mm":20,"height_mm":5}}}]}};
+
+// ─── Column definitions ───────────────────────────────────────────────────────
+// Default: only Name + Qty shown so it fits in 350px. User toggles more via Columns.
+const COLS = [
+  { key:'name', label:'Name',          cls:'col-name', visible:true,  locked:true  },
+  { key:'id',   label:'ID',            cls:'col-id',   visible:false, locked:false },
+  { key:'qty',  label:'Qty',           cls:'col-qty',  visible:true,  locked:false },
+  { key:'mat',  label:'Material',      cls:'col-mat',  visible:false, locked:false },
+  { key:'geo',  label:'Geometry',      cls:'col-geo',  visible:false, locked:false },
+  { key:'spec', label:'Specification', cls:'col-spec', visible:false, locked:false },
+  { key:'desc', label:'Description',   cls:'col-desc', visible:false, locked:false },
+];
+
+// ─── State ────────────────────────────────────────────────────────────────────
+let allNodes   = [];
+let search     = '';
+let selectedId = null;
+
+const WIDE_WIDTH    = 640;
+const DEFAULT_WIDTH = 350;
+let isWide = false;
+
+// ─── Build flat node list ─────────────────────────────────────────────────────
+function buildNodes(comps, depth = 0, parentId = null) {
+  const list = [];
+  for (const c of comps) {
+    list.push({
+      id:       c.id,
+      name:     c.name,
+      qty:      c.quantity ?? 1,
+      mat:      c.material      || '',
+      geo:      c.geometry?.type || '',
+      spec:     c.specification  || '',
+      desc:     c.description    || '',
+      depth, parentId,
+      hasKids:  !!(c.sub_components?.length),
+      expanded: true,
+    });
+    if (c.sub_components?.length)
+      list.push(...buildNodes(c.sub_components, depth + 1, c.id));
+  }
+  return list;
+}
+
+function byId(id) { return allNodes.find(n => n.id === id); }
+
+function ancestorIds(id) {
+  const s = new Set();
+  let n = byId(id);
+  while (n?.parentId) { s.add(n.parentId); n = byId(n.parentId); }
+  return s;
+}
+
+function isVisible(node) {
+  let pid = node.parentId;
+  while (pid) {
+    const p = byId(pid);
+    if (!p || !p.expanded) return false;
+    pid = p.parentId;
+  }
+  return true;
+}
+
+// ─── Filter parsing ───────────────────────────────────────────────────────────
+// Supports:  plain text, :material <term>, :geometry <term>
+function parseFilter(raw) {
+  const m = raw.match(/^:(\w+)\s*(.*)/s);
+  if (m) return { field: m[1].toLowerCase(), term: m[2].trim().toLowerCase() };
+  return { field: null, term: raw.trim().toLowerCase() };
+}
+
+// ─── Visible rows (filter + expansion) ───────────────────────────────────────
+function visibleNodes() {
+  const { field, term } = parseFilter(search);
+  const hasFilter = term.length > 0;
+  let matchSet = null;
+
+  if (hasFilter) {
+    matchSet = new Set();
+    for (const n of allNodes) {
+      let hit = false;
+      if (field === 'material') {
+        hit = n.mat.toLowerCase().includes(term);
+      } else if (field === 'geometry') {
+        hit = n.geo.toLowerCase().includes(term);
+      } else {
+        hit = [n.name, n.id, n.mat, n.geo, n.spec, n.desc]
+                .some(v => v.toLowerCase().includes(term));
+      }
+      if (hit) {
+        matchSet.add(n.id);
+        ancestorIds(n.id).forEach(a => matchSet.add(a));
+      }
+    }
+  }
+
+  return allNodes.filter(n => {
+    if (matchSet && !matchSet.has(n.id)) return false;
+    if (matchSet) return true;
+    return isVisible(n);
+  });
+}
+
+function matTag(m) {
+  if (!m) return '<span class="nil">—</span>';
+  return `<span class="mat-tag" title="${m}">${m}</span>`;
+}
+
+// ─── Column drag-reorder ──────────────────────────────────────────────────────
+let dragKey  = null;
+let dropKey  = null;
+let dropSide = null;
+
+function clearDropStyles() {
+  document.querySelectorAll('#thead-row th').forEach(t =>
+    t.classList.remove('col-dragging', 'drop-before', 'drop-after'));
+}
+
+function bindHeaderDrag() {
+  document.querySelectorAll('#thead-row th[draggable]').forEach(th => {
+    th.addEventListener('dragstart', e => {
+      dragKey = th.dataset.key;
+      e.dataTransfer.effectAllowed = 'move';
+      e.dataTransfer.setData('text/plain', dragKey);
+      // defer so the browser snapshot doesn't already show the faded style
+      requestAnimationFrame(() => th.classList.add('col-dragging'));
+    });
+
+    th.addEventListener('dragover', e => {
+      if (!dragKey || th.dataset.key === dragKey) return;
+      e.preventDefault();
+      e.dataTransfer.dropEffect = 'move';
+      const rect = th.getBoundingClientRect();
+      const side = e.clientX < rect.left + rect.width / 2 ? 'before' : 'after';
+      if (th.dataset.key !== dropKey || side !== dropSide) {
+        clearDropStyles();
+        document.querySelector(`#thead-row th[data-key="${dragKey}"]`)
+                ?.classList.add('col-dragging');
+        th.classList.add(`drop-${side}`);
+        dropKey  = th.dataset.key;
+        dropSide = side;
+      }
+    });
+
+    th.addEventListener('dragleave', e => {
+      // only clear if we've actually left the element (not moved to a child)
+      if (!th.contains(e.relatedTarget)) {
+        th.classList.remove('drop-before', 'drop-after');
+      }
+    });
+
+    th.addEventListener('drop', e => {
+      e.preventDefault();
+      if (!dragKey || dragKey === dropKey || !dropKey) return;
+      const srcIdx = COLS.findIndex(c => c.key === dragKey);
+      const [col]  = COLS.splice(srcIdx, 1);
+      const tgtIdx = COLS.findIndex(c => c.key === dropKey);
+      COLS.splice(dropSide === 'after' ? tgtIdx + 1 : tgtIdx, 0, col);
+      dragKey = dropKey = dropSide = null;
+      render();
+      // re-sync column config checkboxes to new order
+      renderColConfig();
+    });
+
+    th.addEventListener('dragend', () => {
+      clearDropStyles();
+      dragKey = dropKey = dropSide = null;
+    });
+  });
+}
+
+// ─── Render ───────────────────────────────────────────────────────────────────
+function renderHeader() {
+  document.getElementById('thead-row').innerHTML =
+    COLS.filter(c => c.visible)
+        .map(c => `<th class="${c.cls}" draggable="true" data-key="${c.key}">${c.label}</th>`)
+        .join('');
+  bindHeaderDrag();
+}
+
+function renderRows() {
+  const rows  = visibleNodes();
+  const table = document.getElementById('nav-table');
+  const empty = document.getElementById('empty-state');
+
+  if (!rows.length) {
+    document.getElementById('tbody').innerHTML = '';
+    table.style.display = 'none';
+    empty.style.display = '';
+    updateStats(0);
+    return;
+  }
+  table.style.display = '';
+  empty.style.display = 'none';
+
+  document.getElementById('tbody').innerHTML = rows.map(n => {
+    const cells = COLS.filter(c => c.visible).map(col => {
+      switch (col.key) {
+        case 'name': {
+          const pad = n.depth * 16;
+          const btn = n.hasKids
+            ? `<span class="xbtn" data-id="${n.id}">${n.expanded ? '&#9660;' : '&#9654;'}</span>`
+            : `<span class="xbtn leaf">&#183;</span>`;
+          return `<td class="${col.cls}"><div class="tree-cell">
+            <span class="indent" style="width:${pad}px"></span>${btn}
+            <span class="lbl ${n.hasKids ? 'p' : ''}">${n.name}</span>
+          </div></td>`;
+        }
+        case 'id':   return `<td class="${col.cls}"><span class="id-code">${n.id}</span></td>`;
+        case 'qty':  return `<td class="${col.cls}"><span class="qty-pill">${n.qty}</span></td>`;
+        case 'mat':  return `<td class="${col.cls}">${matTag(n.mat)}</td>`;
+        case 'geo':  return n.geo
+          ? `<td class="${col.cls}"><span class="geo-tag">${n.geo}</span></td>`
+          : `<td class="${col.cls}"><span class="nil">—</span></td>`;
+        case 'spec': return n.spec
+          ? `<td class="${col.cls}"><span class="spec-text">${n.spec}</span></td>`
+          : `<td class="${col.cls}"><span class="nil">—</span></td>`;
+        case 'desc': return `<td class="${col.cls}" title="${n.desc}">${n.desc || '<span class="nil">—</span>'}</td>`;
+        default:     return `<td class="${col.cls}"><span class="nil">—</span></td>`;
+      }
+    }).join('');
+    return `<tr data-id="${n.id}" class="${n.id === selectedId ? 'selected' : ''}">${cells}</tr>`;
+  }).join('');
+
+  document.getElementById('tbody').querySelectorAll('.xbtn:not(.leaf)').forEach(btn => {
+    btn.addEventListener('click', e => {
+      e.stopPropagation();
+      const node = byId(btn.dataset.id);
+      if (node) { node.expanded = !node.expanded; render(); }
+    });
+  });
+
+  document.getElementById('tbody').querySelectorAll('tr').forEach(tr => {
+    tr.addEventListener('click', () => {
+      selectedId = tr.dataset.id === selectedId ? null : tr.dataset.id;
+      render();
+    });
+  });
+
+  updateStats(rows.length);
+}
+
+function updateStats(visible) {
+  const total = allNodes.length;
+  const top   = allNodes.filter(n => n.depth === 0).length;
+  const flt   = search.trim().length > 0;
+  document.getElementById('stats-bar').innerHTML = `
+    <span><span class="sv">${total}</span> total</span>
+    <span><span class="sv">${top}</span> top-level</span>
+    <span><span class="sv">${visible}</span> shown</span>
+    ${flt ? `<span class="fbadge">Filtered<span class="x" id="clr-flt">✕</span></span>` : ''}
+  `;
+  document.getElementById('clr-flt')?.addEventListener('click', clearFilters);
+}
+
+function render() { renderHeader(); renderRows(); }
+
+// ─── Column config UI ─────────────────────────────────────────────────────────
+function renderColConfig() {
+  document.getElementById('col-items').innerHTML = COLS.map(c => `
+    <label class="col-item ${c.locked ? 'locked' : ''}">
+      <input type="checkbox" data-key="${c.key}" ${c.visible ? 'checked' : ''} ${c.locked ? 'disabled' : ''}>
+      ${c.label}
+    </label>`).join('');
+  document.getElementById('col-items').querySelectorAll('input').forEach(cb => {
+    cb.addEventListener('change', e => {
+      const col = COLS.find(c => c.key === e.target.dataset.key);
+      if (col && !col.locked) { col.visible = e.target.checked; render(); }
+    });
+  });
+}
+
+function clearFilters() {
+  search = '';
+  document.getElementById('inp-search').value = '';
+  render();
+}
+
+// ─── Panel resize – drag handle ───────────────────────────────────────────────
+const panel  = document.getElementById('panel');
+const handle = document.getElementById('rhandle');
+
+handle.addEventListener('mousedown', e => {
+  e.preventDefault();
+  const startX = e.clientX;
+  const startW = panel.offsetWidth;
+  handle.classList.add('active');
+
+  const onMove = e => {
+    const w = Math.max(260, Math.min(window.innerWidth * 0.75, startX - e.clientX + startW));
+    // Note: panel is on the LEFT; dragging rightward means startX < e.clientX so w decreases
+    // Actually: panel is left, resize handle is on right edge.
+    // Dragging right (e.clientX > startX) → panel widens. Use: startW + (e.clientX - startX)
+    const newW = Math.max(260, Math.min(window.innerWidth * 0.75, startW + (e.clientX - startX)));
+    panel.style.width = newW + 'px';
+    panel.style.transition = 'none';
+    isWide = newW > (DEFAULT_WIDTH + WIDE_WIDTH) / 2;
+    updateWidenIcon();
+  };
+
+  const onUp = () => {
+    handle.classList.remove('active');
+    panel.style.transition = '';
+    document.removeEventListener('mousemove', onMove);
+    document.removeEventListener('mouseup', onUp);
+  };
+
+  document.addEventListener('mousemove', onMove);
+  document.addEventListener('mouseup', onUp);
+});
+
+// ─── Panel expand/collapse toggle button ──────────────────────────────────────
+const widenBtn  = document.getElementById('btn-widen');
+const widenIcon = document.getElementById('widen-icon');
+
+function updateWidenIcon() {
+  const expanded = panel.offsetWidth > (DEFAULT_WIDTH + WIDE_WIDTH) / 2;
+  widenIcon.innerHTML = expanded ? '&laquo;' : '&raquo;';
+  widenBtn.classList.toggle('on', expanded);
+}
+
+widenBtn.addEventListener('click', () => {
+  const currentW = panel.offsetWidth;
+  const goWide   = currentW < (DEFAULT_WIDTH + WIDE_WIDTH) / 2;
+  panel.style.transition = 'width 0.22s ease';
+  panel.style.width      = (goWide ? WIDE_WIDTH : DEFAULT_WIDTH) + 'px';
+  isWide = goWide;
+  updateWidenIcon();
+  // clear transition after animation
+  setTimeout(() => { panel.style.transition = ''; }, 240);
+});
+
+// ─── Pre-filter dropdown ──────────────────────────────────────────────────────
+const pfltBtn   = document.getElementById('btn-pflt');
+const pfltPanel = document.getElementById('pflt-panel');
+pfltBtn.addEventListener('click', e => {
+  e.stopPropagation();
+  pfltPanel.classList.toggle('open');
+  pfltBtn.classList.toggle('active', pfltPanel.classList.contains('open'));
+});
+pfltPanel.querySelectorAll('.pflt-opt').forEach(opt => {
+  opt.addEventListener('click', () => {
+    const inp = document.getElementById('inp-search');
+    inp.value = opt.dataset.prefix;
+    search = inp.value;
+    pfltPanel.classList.remove('open');
+    pfltBtn.classList.remove('active');
+    inp.focus();
+    inp.setSelectionRange(inp.value.length, inp.value.length);
+    render();
+  });
+});
+
+// ─── Column config dropdown ───────────────────────────────────────────────────
+const colBtn   = document.getElementById('btn-cols');
+const colPanel = document.getElementById('col-panel');
+colBtn.addEventListener('click', e => {
+  e.stopPropagation();
+  colPanel.classList.toggle('open');
+  colBtn.classList.toggle('active', colPanel.classList.contains('open'));
+});
+
+// Close both dropdowns on outside click
+document.addEventListener('click', e => {
+  if (!colPanel.contains(e.target) && e.target !== colBtn) {
+    colPanel.classList.remove('open');
+    colBtn.classList.remove('active');
+  }
+  if (!pfltPanel.contains(e.target) && e.target !== pfltBtn) {
+    pfltPanel.classList.remove('open');
+    pfltBtn.classList.remove('active');
+  }
+});
+
+// ─── Toolbar events ───────────────────────────────────────────────────────────
+document.getElementById('inp-search').addEventListener('input', e => { search = e.target.value; render(); });
+document.getElementById('btn-expand').addEventListener('click',   () => { allNodes.forEach(n => { n.expanded = true; });                render(); });
+document.getElementById('btn-collapse').addEventListener('click', () => { allNodes.forEach(n => { if (n.hasKids) n.expanded = false; }); render(); });
+
+// ─── Simulated editor code ────────────────────────────────────────────────────
+function buildEditorContent() {
+  const lines = [
+    `<span class="cm">// TOASTER-001  v2.0  assembly.json</span>`,
+    `<span class="punc">{</span>`,
+    `  <span class="prop">"assembly"</span><span class="punc">:</span> <span class="punc">{</span>`,
+    `    <span class="prop">"product_name"</span><span class="punc">:</span> <span class="str">"Toaster"</span><span class="punc">,</span>`,
+    `    <span class="prop">"product_id"</span><span class="punc">:</span>   <span class="str">"TOASTER-001"</span><span class="punc">,</span>`,
+    `    <span class="prop">"version"</span><span class="punc">:</span>      <span class="str">"2.0"</span><span class="punc">,</span>`,
+    `    <span class="prop">"units"</span><span class="punc">:</span>        <span class="str">"mm"</span><span class="punc">,</span>`,
+    `    <span class="prop">"components"</span><span class="punc">:</span> <span class="punc">[</span>`,
+    `      <span class="punc">{</span>`,
+    `        <span class="prop">"id"</span><span class="punc">:</span>       <span class="str">"COMP-001"</span><span class="punc">,</span>`,
+    `        <span class="prop">"name"</span><span class="punc">:</span>     <span class="str">"Outer Housing"</span><span class="punc">,</span>`,
+    `        <span class="prop">"material"</span><span class="punc">:</span> <span class="str">"Stainless Steel"</span><span class="punc">,</span>`,
+    `        <span class="prop">"sub_components"</span><span class="punc">:</span> <span class="punc">[</span>`,
+    `          <span class="punc">{</span> <span class="prop">"id"</span><span class="punc">:</span> <span class="str">"COMP-001-01"</span><span class="punc">,</span> <span class="prop">"name"</span><span class="punc">:</span> <span class="str">"Top Cover"</span> <span class="punc">},</span>`,
+    `          <span class="punc">{</span> <span class="prop">"id"</span><span class="punc">:</span> <span class="str">"COMP-001-02"</span><span class="punc">,</span> <span class="prop">"name"</span><span class="punc">:</span> <span class="str">"Side Panels"</span><span class="punc">,</span> <span class="prop">"quantity"</span><span class="punc">:</span> <span class="num">2</span> <span class="punc">},</span>`,
+    `          <span class="punc">{</span> <span class="prop">"id"</span><span class="punc">:</span> <span class="str">"COMP-001-03"</span><span class="punc">,</span> <span class="prop">"name"</span><span class="punc">:</span> <span class="str">"Base Plate"</span> <span class="punc">},</span>`,
+    `          <span class="punc">{</span> <span class="prop">"id"</span><span class="punc">:</span> <span class="str">"COMP-001-04"</span><span class="punc">,</span> <span class="prop">"name"</span><span class="punc">:</span> <span class="str">"Crumb Tray"</span> <span class="punc">}</span>`,
+    `        <span class="punc">]</span>`,
+    `      <span class="punc">},</span>`,
+    `      <span class="punc">{</span>`,
+    `        <span class="prop">"id"</span><span class="punc">:</span>   <span class="str">"COMP-002"</span><span class="punc">,</span>`,
+    `        <span class="prop">"name"</span><span class="punc">:</span> <span class="str">"Heating Assembly"</span><span class="punc">,</span>`,
+    `        <span class="prop">"sub_components"</span><span class="punc">:</span> <span class="punc">[</span>`,
+    `          <span class="punc">{</span> <span class="prop">"id"</span><span class="punc">:</span> <span class="str">"COMP-002-01"</span><span class="punc">,</span> <span class="prop">"name"</span><span class="punc">:</span> <span class="str">"Heating Element"</span><span class="punc">,</span> <span class="prop">"quantity"</span><span class="punc">:</span> <span class="num">4</span><span class="punc">,</span> <span class="prop">"spec"</span><span class="punc">:</span> <span class="str">"800W"</span> <span class="punc">},</span>`,
+    `          <span class="punc">{</span> <span class="prop">"id"</span><span class="punc">:</span> <span class="str">"COMP-002-02"</span><span class="punc">,</span> <span class="prop">"name"</span><span class="punc">:</span> <span class="str">"Mica Sheets (Insulator)"</span><span class="punc">,</span> <span class="prop">"quantity"</span><span class="punc">:</span> <span class="num">4</span> <span class="punc">},</span>`,
+    `          <span class="punc">{</span> <span class="prop">"id"</span><span class="punc">:</span> <span class="str">"COMP-002-03"</span><span class="punc">,</span> <span class="prop">"name"</span><span class="punc">:</span> <span class="str">"Element Support Frame"</span><span class="punc">,</span> <span class="prop">"quantity"</span><span class="punc">:</span> <span class="num">2</span> <span class="punc">}</span>`,
+    `        <span class="punc">]</span>`,
+    `      <span class="punc">},</span>`,
+    `      <span class="cm">// … COMP-003 through COMP-006 …</span>`,
+    `    <span class="punc">]</span>`,
+    `  <span class="punc">}</span>`,
+    `<span class="punc">}</span>`,
+  ];
+  document.getElementById('code-area').innerHTML = lines
+    .map((l, i) => `<div class="code-line"><span class="ln">${i + 1}</span><span>${l}</span></div>`)
+    .join('');
+}
+
+// ─── Product header ───────────────────────────────────────────────────────────
+function renderProductHeader() {
+  const a = ASSEMBLY.assembly;
+  document.getElementById('hdr-name').textContent = a.product_name;
+  document.getElementById('hdr-chips').innerHTML  =
+    `<span class="chip">${a.product_id}</span><span class="chip">v${a.version}</span><span class="chip">${a.units}</span>`;
+}
+
+// ─── Init ─────────────────────────────────────────────────────────────────────
+allNodes = buildNodes(ASSEMBLY.assembly.components);
+renderProductHeader();
+renderColConfig();
+buildEditorContent();
+render();
+updateWidenIcon();
+</script>
+</body>
+</html>
