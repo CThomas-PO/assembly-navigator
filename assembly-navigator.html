@@ -583,16 +583,7 @@ function renderRows() {
   table.style.display = '';
   empty.style.display = 'none';
 
-  const a = ASSEMBLY.assembly;
-  const asmCells = COLS.filter(c => c.visible).map(col => {
-    if (col.key === 'name') return `<td class="${col.cls}"><div class="tree-cell"><span class="lbl p">${a.product_name}</span></div></td>`;
-    if (col.key === 'id')   return `<td class="${col.cls}"><span class="id-code">${a.product_id}</span></td>`;
-    if (col.key === 'desc') return `<td class="${col.cls}">${a.description}</td>`;
-    return `<td class="${col.cls}"><span class="nil">—</span></td>`;
-  }).join('');
-  const asmRow = `<tr class="asm-root">${asmCells}</tr>`;
-
-  document.getElementById('tbody').innerHTML = asmRow + rows.map(n => {
+  document.getElementById('tbody').innerHTML = rows.map(n => {
     const cells = COLS.filter(c => c.visible).map(col => {
       switch (col.key) {
         case 'name': {
@@ -618,7 +609,8 @@ function renderRows() {
         default:     return `<td class="${col.cls}"><span class="nil">—</span></td>`;
       }
     }).join('');
-    return `<tr data-id="${n.id}" class="${n.id === selectedId ? 'selected' : ''}">${cells}</tr>`;
+    const cls = [n.depth === 0 ? 'asm-root' : '', n.id === selectedId ? 'selected' : ''].filter(Boolean).join(' ');
+    return `<tr data-id="${n.id}" class="${cls}">${cells}</tr>`;
   }).join('');
 
   document.getElementById('tbody').querySelectorAll('.xbtn:not(.leaf)').forEach(btn => {
@@ -826,7 +818,25 @@ function renderProductHeader() {
 }
 
 // ─── Init ─────────────────────────────────────────────────────────────────────
-allNodes = buildNodes(ASSEMBLY.assembly.components);
+const a = ASSEMBLY.assembly;
+const componentNodes = buildNodes(a.components);
+componentNodes.forEach(n => {
+  n.depth += 1;
+  if (n.parentId === null) n.parentId = a.product_id;
+});
+allNodes = [{
+  id:      a.product_id,
+  name:    a.product_name,
+  qty:     1,
+  mat:     '',
+  geo:     '',
+  spec:    `v${a.version}`,
+  desc:    a.description,
+  depth:   0,
+  parentId: null,
+  hasKids:  true,
+  expanded: true,
+}, ...componentNodes];
 renderProductHeader();
 renderColConfig();
 buildEditorContent();
