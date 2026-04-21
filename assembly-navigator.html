@@ -16,39 +16,18 @@ body {
   display: flex;
 }
 
-/* ── Editor placeholder ── */
-.editor-area {
+/* ── 3D Viewer ── */
+.viewer-area {
   flex: 1; min-width: 0;
-  display: flex; flex-direction: column;
-  overflow: hidden;
-  background: repeating-linear-gradient(
-    -45deg, #dedede 0, #dedede 1px, #e8e8e8 1px, #e8e8e8 9px
-  );
+  position: relative; overflow: hidden;
+  background: #efefef;
 }
-.tab-bar {
-  height: 28px;
-  background: #ebebeb;
-  border-bottom: 1px solid #aaa;
-  display: flex; align-items: flex-end;
-  padding: 0 8px; gap: 2px; flex-shrink: 0;
+#canvas-3d { width: 100%; height: 100%; display: block; }
+#viewer-hint {
+  position: absolute; bottom: 8px; left: 0; right: 0;
+  text-align: center; font-size: 10px; color: #999;
+  pointer-events: none; user-select: none;
 }
-.tab {
-  padding: 3px 12px 4px;
-  font-size: 11px; color: #888; cursor: default; user-select: none;
-  border: 1px solid #bbb; border-bottom: none;
-  background: #ddd;
-}
-.tab.active { color: #222; background: #ebebeb; border-color: #aaa; }
-.code-area {
-  flex: 1; overflow: auto;
-  padding: 14px 0;
-  font-family: 'Courier New', monospace;
-  font-size: 11px; line-height: 1.7; color: #aaa;
-}
-.code-line { display: flex; padding: 0 18px; }
-.ln { color: #ccc; width: 24px; text-align: right; margin-right: 14px; user-select: none; flex-shrink: 0; }
-.kw { color: #aaa; } .str { color: #999; } .cm { color: #bbb; font-style: italic; }
-.prop { color: #888; } .num { color: #aaa; } .punc { color: #ccc; }
 
 /* ── Panel ── */
 .panel {
@@ -296,6 +275,14 @@ td.col-qty { text-align: center; }
 .empty-state h3 { font-size: 12px; margin-bottom: 4px; }
 .empty-state p  { font-size: 11px; color: #bbb; }
 </style>
+<script type="importmap">
+{
+  "imports": {
+    "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.min.js",
+    "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+  }
+}
+</script>
 </head>
 <body>
 
@@ -373,14 +360,10 @@ td.col-qty { text-align: center; }
   </div>
 </div>
 
-<!-- ── Simulated editor area ──────────────────────────────────────────────── -->
-<div class="editor-area">
-  <div class="tab-bar">
-    <div class="tab active">assembly.json</div>
-    <div class="tab">toaster.ts</div>
-    <div class="tab">bom.csv</div>
-  </div>
-  <div class="code-area" id="code-area"></div>
+<!-- ── 3D Viewer ──────────────────────────────────────────────────────────── -->
+<div class="viewer-area">
+  <canvas id="canvas-3d"></canvas>
+  <div id="viewer-hint">Drag to orbit &nbsp;·&nbsp; Scroll to zoom &nbsp;·&nbsp; Select a part in the navigator to highlight it</div>
 </div>
 
 <script>
@@ -623,6 +606,7 @@ function renderRows() {
     tr.addEventListener('click', () => {
       selectedId = tr.dataset.id === selectedId ? null : tr.dataset.id;
       render();
+      document.dispatchEvent(new CustomEvent('asm-select', { detail: { id: selectedId } }));
     });
   });
 
@@ -788,47 +772,6 @@ document.getElementById('inp-search').addEventListener('input', e => { search = 
 document.getElementById('btn-expand').addEventListener('click',   () => { allNodes.forEach(n => { n.expanded = true; });                render(); });
 document.getElementById('btn-collapse').addEventListener('click', () => { allNodes.forEach(n => { if (n.hasKids) n.expanded = false; }); render(); });
 
-// ─── Simulated editor code ────────────────────────────────────────────────────
-function buildEditorContent() {
-  const lines = [
-    `<span class="cm">// TOASTER-001  v2.0  assembly.json</span>`,
-    `<span class="punc">{</span>`,
-    `  <span class="prop">"assembly"</span><span class="punc">:</span> <span class="punc">{</span>`,
-    `    <span class="prop">"product_name"</span><span class="punc">:</span> <span class="str">"Toaster"</span><span class="punc">,</span>`,
-    `    <span class="prop">"product_id"</span><span class="punc">:</span>   <span class="str">"TOASTER-001"</span><span class="punc">,</span>`,
-    `    <span class="prop">"version"</span><span class="punc">:</span>      <span class="str">"2.0"</span><span class="punc">,</span>`,
-    `    <span class="prop">"units"</span><span class="punc">:</span>        <span class="str">"mm"</span><span class="punc">,</span>`,
-    `    <span class="prop">"components"</span><span class="punc">:</span> <span class="punc">[</span>`,
-    `      <span class="punc">{</span>`,
-    `        <span class="prop">"id"</span><span class="punc">:</span>       <span class="str">"COMP-001"</span><span class="punc">,</span>`,
-    `        <span class="prop">"name"</span><span class="punc">:</span>     <span class="str">"Outer Housing"</span><span class="punc">,</span>`,
-    `        <span class="prop">"material"</span><span class="punc">:</span> <span class="str">"Stainless Steel"</span><span class="punc">,</span>`,
-    `        <span class="prop">"sub_components"</span><span class="punc">:</span> <span class="punc">[</span>`,
-    `          <span class="punc">{</span> <span class="prop">"id"</span><span class="punc">:</span> <span class="str">"COMP-001-01"</span><span class="punc">,</span> <span class="prop">"name"</span><span class="punc">:</span> <span class="str">"Top Cover"</span> <span class="punc">},</span>`,
-    `          <span class="punc">{</span> <span class="prop">"id"</span><span class="punc">:</span> <span class="str">"COMP-001-02"</span><span class="punc">,</span> <span class="prop">"name"</span><span class="punc">:</span> <span class="str">"Side Panels"</span><span class="punc">,</span> <span class="prop">"quantity"</span><span class="punc">:</span> <span class="num">2</span> <span class="punc">},</span>`,
-    `          <span class="punc">{</span> <span class="prop">"id"</span><span class="punc">:</span> <span class="str">"COMP-001-03"</span><span class="punc">,</span> <span class="prop">"name"</span><span class="punc">:</span> <span class="str">"Base Plate"</span> <span class="punc">},</span>`,
-    `          <span class="punc">{</span> <span class="prop">"id"</span><span class="punc">:</span> <span class="str">"COMP-001-04"</span><span class="punc">,</span> <span class="prop">"name"</span><span class="punc">:</span> <span class="str">"Crumb Tray"</span> <span class="punc">}</span>`,
-    `        <span class="punc">]</span>`,
-    `      <span class="punc">},</span>`,
-    `      <span class="punc">{</span>`,
-    `        <span class="prop">"id"</span><span class="punc">:</span>   <span class="str">"COMP-002"</span><span class="punc">,</span>`,
-    `        <span class="prop">"name"</span><span class="punc">:</span> <span class="str">"Heating Assembly"</span><span class="punc">,</span>`,
-    `        <span class="prop">"sub_components"</span><span class="punc">:</span> <span class="punc">[</span>`,
-    `          <span class="punc">{</span> <span class="prop">"id"</span><span class="punc">:</span> <span class="str">"COMP-002-01"</span><span class="punc">,</span> <span class="prop">"name"</span><span class="punc">:</span> <span class="str">"Heating Element"</span><span class="punc">,</span> <span class="prop">"quantity"</span><span class="punc">:</span> <span class="num">4</span><span class="punc">,</span> <span class="prop">"spec"</span><span class="punc">:</span> <span class="str">"800W"</span> <span class="punc">},</span>`,
-    `          <span class="punc">{</span> <span class="prop">"id"</span><span class="punc">:</span> <span class="str">"COMP-002-02"</span><span class="punc">,</span> <span class="prop">"name"</span><span class="punc">:</span> <span class="str">"Mica Sheets (Insulator)"</span><span class="punc">,</span> <span class="prop">"quantity"</span><span class="punc">:</span> <span class="num">4</span> <span class="punc">},</span>`,
-    `          <span class="punc">{</span> <span class="prop">"id"</span><span class="punc">:</span> <span class="str">"COMP-002-03"</span><span class="punc">,</span> <span class="prop">"name"</span><span class="punc">:</span> <span class="str">"Element Support Frame"</span><span class="punc">,</span> <span class="prop">"quantity"</span><span class="punc">:</span> <span class="num">2</span> <span class="punc">}</span>`,
-    `        <span class="punc">]</span>`,
-    `      <span class="punc">},</span>`,
-    `      <span class="cm">// … COMP-003 through COMP-006 …</span>`,
-    `    <span class="punc">]</span>`,
-    `  <span class="punc">}</span>`,
-    `<span class="punc">}</span>`,
-  ];
-  document.getElementById('code-area').innerHTML = lines
-    .map((l, i) => `<div class="code-line"><span class="ln">${i + 1}</span><span>${l}</span></div>`)
-    .join('');
-}
-
 // ─── Product header ───────────────────────────────────────────────────────────
 function renderProductHeader() {
   const a = ASSEMBLY.assembly;
@@ -860,9 +803,202 @@ allNodes = [{
 renderProductHeader();
 loadColConfig();
 renderColConfig();
-buildEditorContent();
 render();
 updateWidenIcon();
+</script>
+<script type="module">
+import * as THREE from 'three';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+
+// ── Scene ─────────────────────────────────────────────────────────────────────
+const canvas   = document.getElementById('canvas-3d');
+const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
+renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0xefefef);
+
+const camera = new THREE.PerspectiveCamera(40, 1, 1, 2000);
+camera.position.set(280, 160, 260);
+camera.lookAt(0, 0, 0);
+
+const controls = new OrbitControls(camera, renderer.domElement);
+controls.enableDamping = true;
+controls.dampingFactor = 0.08;
+controls.minDistance   = 80;
+controls.maxDistance   = 900;
+controls.target.set(0, 0, 0);
+
+// ── Lighting ──────────────────────────────────────────────────────────────────
+scene.add(new THREE.AmbientLight(0xffffff, 0.7));
+const sun = new THREE.DirectionalLight(0xffffff, 0.85);
+sun.position.set(200, 300, 200);
+scene.add(sun);
+const fill = new THREE.DirectionalLight(0xddeeff, 0.3);
+fill.position.set(-200, 100, -200);
+scene.add(fill);
+
+// ── Grid ──────────────────────────────────────────────────────────────────────
+const grid = new THREE.GridHelper(500, 20, 0xbbbbbb, 0xdddddd);
+grid.position.y = -53;
+scene.add(grid);
+
+// ── Part registry ──────────────────────────────────────────────────────────────
+const allMeshes  = [];
+const partMeshes = {};
+
+function reg(id, mesh) {
+  mesh.userData.partId    = id;
+  mesh.userData.baseColor = mesh.material.color.getHex();
+  (partMeshes[id] = partMeshes[id] || []).push(mesh);
+  allMeshes.push(mesh);
+  scene.add(mesh);
+}
+
+// ── Coordinate transform ───────────────────────────────────────────────────────
+// Assembly: X=Length[0-280], Y=Width[0-120], Z=Height[0-100], center=(140,60,50)
+// Three.js: x = ax-140,  y = az-50,  z = 60-ay
+function a2t(ax, ay, az) { return [ax - 140, az - 50, 60 - ay]; }
+
+// ── Box primitive (origin = min corner in asm mm; lx/wy/hz = asm dims) ─────────
+function box(id, lx, wy, hz, ox, oy, oz, hex) {
+  const [tx, ty, tz] = a2t(ox + lx / 2, oy + wy / 2, oz + hz / 2);
+  const geo  = new THREE.BoxGeometry(lx, hz, wy);
+  const mat  = new THREE.MeshPhongMaterial({ color: hex, shininess: 30, transparent: true, opacity: 0.88 });
+  const mesh = new THREE.Mesh(geo, mat);
+  mesh.position.set(tx, ty, tz);
+  mesh.add(new THREE.LineSegments(
+    new THREE.EdgesGeometry(geo),
+    new THREE.LineBasicMaterial({ color: 0x777777, transparent: true, opacity: 0.7 })
+  ));
+  reg(id, mesh);
+}
+
+// ── Cylinder (cx/cy/cz = asm center coords) ────────────────────────────────────
+// Default: height along THREE Y (= asm Z, vertical)
+// axis 'x': rotation.x=PI/2  → height along THREE Z (= asm -Y, front/back)
+// axis 'z': rotation.z=PI/2  → height along THREE X (= asm X,  left/right)
+function cyl(id, r, h, cx, cy, cz, axis, hex) {
+  const [tx, ty, tz] = a2t(cx, cy, cz);
+  const geo  = new THREE.CylinderGeometry(r, r, h, 16);
+  const mat  = new THREE.MeshPhongMaterial({ color: hex, shininess: 30, transparent: true, opacity: 0.88 });
+  const mesh = new THREE.Mesh(geo, mat);
+  mesh.position.set(tx, ty, tz);
+  if (axis === 'x') mesh.rotation.x = Math.PI / 2;
+  if (axis === 'z') mesh.rotation.z = Math.PI / 2;
+  mesh.add(new THREE.LineSegments(
+    new THREE.EdgesGeometry(geo),
+    new THREE.LineBasicMaterial({ color: 0x777777, transparent: true, opacity: 0.7 })
+  ));
+  reg(id, mesh);
+}
+
+// ── Colors ────────────────────────────────────────────────────────────────────
+const C = {
+  steel:   0xc8c8c8,
+  plastic: 0xd4c090,
+  heat:    0xcc8855,
+  mica:    0xe8dcc8,
+  spring:  0x9898a8,
+  rubber:  0x484848,
+  pcb:     0x60a060,
+  copper:  0xaa8844,
+};
+
+// ── COMP-001: Outer Housing ────────────────────────────────────────────────────
+box('COMP-001-01', 280, 120,   2,   0,   0, 98, C.steel);   // Top Cover
+box('COMP-001-02', 280,   2, 100,   0,   0,  0, C.steel);   // Side Panel (front y=0)
+box('COMP-001-02', 280,   2, 100,   0, 118,  0, C.steel);   // Side Panel (back y=118)
+box('COMP-001-03', 280, 120,   3,   0,   0,  0, C.plastic); // Base Plate
+box('COMP-001-04', 238,  98,   8,  21,  11,  0, C.steel);   // Crumb Tray
+
+// ── COMP-002: Heating Assembly ─────────────────────────────────────────────────
+// 4 heating elements (thin vertical panels inside toaster)
+[24, 44, 74, 94].forEach(yd => box('COMP-002-01', 200, 1.5, 85, 40, yd, 5, C.heat));
+// 4 mica insulator sheets adjacent to elements
+[26, 46, 76, 96].forEach(yd => box('COMP-002-02', 200,   1, 85, 40, yd, 5, C.mica));
+// 2 support frames at each end
+box('COMP-002-03', 200,   5, 85,  40,   2, 5, C.steel);
+box('COMP-002-03', 200,   5, 85,  40, 113, 5, C.steel);
+
+// ── COMP-003: Carriage Mechanism ───────────────────────────────────────────────
+box('COMP-003-01',    15,  15,  40, 255,  55,  20, C.plastic);        // Lever
+box('COMP-003-02',   200,  80,   5,  40,  20,  15, C.steel);          // Rack
+cyl('COMP-003-03',     5,  50, 255,  60,  35, undefined, C.spring);   // Return Spring (vertical)
+box('COMP-003-04-01',  20,   5,  15, 252,  58,  18, C.steel);         // Latch Hook
+cyl('COMP-003-04-02', 2.5,  15, 254,  60, 29.5, undefined, C.spring); // Latch Spring
+
+// ── COMP-004: Control Assembly ─────────────────────────────────────────────────
+// Buttons/dial on front face (asm y≈0), cylinder axis 'x' = protrudes along asm-Y outward
+cyl('COMP-004-01', 10,  10, 230,  -5, 40, 'x', C.plastic); // Browning Dial
+box('COMP-004-02',  60,  40,   2, 190,  40, 12, C.pcb);     // Thermostat PCB
+box('COMP-004-03',  40,   5,   3, 200,  45, 16, C.spring);  // Solenoid/Bimetallic
+cyl('COMP-004-04',   6,   8, 210,  -4, 40, 'x', C.plastic); // Cancel Button
+cyl('COMP-004-05',   6,   8, 170,  -4, 40, 'x', C.plastic); // Defrost Button
+cyl('COMP-004-05',   6,   8, 190,  -4, 40, 'x', C.plastic); // Reheat Button
+
+// ── COMP-005: Electrical Assembly ──────────────────────────────────────────────
+cyl('COMP-005-01',   3, 60,  10, 125,   5, 'x', C.copper); // Power Cord stub (exits back)
+box('COMP-005-02',  50, 35,  25, -70,  42,   0, C.plastic); // Plug (outside toaster)
+box('COMP-005-03', 200,   8,   8,  40,  56,   8, C.copper); // Internal Wiring Harness
+cyl('COMP-005-04',   3, 25,  28,  60,   8, 'z', C.copper);  // Fuse (horizontal along X)
+
+// ── COMP-006: Feet (4 rubber pads at base corners) ─────────────────────────────
+cyl('COMP-006', 10, 5,  20,  20, -2.5, undefined, C.rubber);
+cyl('COMP-006', 10, 5,  20, 100, -2.5, undefined, C.rubber);
+cyl('COMP-006', 10, 5, 260,  20, -2.5, undefined, C.rubber);
+cyl('COMP-006', 10, 5, 260, 100, -2.5, undefined, C.rubber);
+
+// ── Highlight ─────────────────────────────────────────────────────────────────
+function highlight(id) {
+  const isRoot = (id === 'TOASTER-001');
+  allMeshes.forEach(m => {
+    const pid   = m.userData.partId;
+    const match = !id || isRoot || pid === id || pid.startsWith(id + '-');
+
+    if (!id || isRoot) {
+      // No selection or root selected: restore all
+      m.material.color.setHex(m.userData.baseColor);
+      m.material.opacity = 0.88;
+      m.material.emissive.setHex(0x000000);
+      m.children.forEach(c => { if (c.isLineSegments) { c.material.opacity = 0.7; c.material.color.setHex(0x777777); } });
+    } else if (match) {
+      // Highlighted part
+      m.material.color.setHex(0xdd8800);
+      m.material.opacity = 1.0;
+      m.material.emissive.setHex(0x221100);
+      m.children.forEach(c => { if (c.isLineSegments) { c.material.opacity = 1.0; c.material.color.setHex(0x885500); } });
+    } else {
+      // Dimmed part
+      m.material.color.setHex(0xaaaaaa);
+      m.material.opacity = 0.12;
+      m.material.emissive.setHex(0x000000);
+      m.children.forEach(c => { if (c.isLineSegments) { c.material.opacity = 0.06; c.material.color.setHex(0x888888); } });
+    }
+  });
+}
+
+// ── Event bridge: navigator → viewer ──────────────────────────────────────────
+document.addEventListener('asm-select', e => highlight(e.detail.id));
+
+// ── Resize ────────────────────────────────────────────────────────────────────
+const container = canvas.parentElement;
+function resize() {
+  const w = container.clientWidth  || 1;
+  const h = container.clientHeight || 1;
+  renderer.setSize(w, h, false);
+  camera.aspect = w / h;
+  camera.updateProjectionMatrix();
+}
+new ResizeObserver(resize).observe(container);
+resize();
+
+// ── Render loop ───────────────────────────────────────────────────────────────
+(function loop() {
+  requestAnimationFrame(loop);
+  controls.update();
+  renderer.render(scene, camera);
+})();
 </script>
 </body>
 </html>
