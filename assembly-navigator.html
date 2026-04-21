@@ -73,6 +73,24 @@ body {
 .resize-handle:hover::after,
 .resize-handle.active::after { background: #555; }
 
+/* ── Panel title ── */
+.pnl-title {
+  background: #e4e4e4;
+  border-bottom: 1px solid #bbb;
+  padding: 5px 10px;
+  font-size: 11px; font-weight: bold;
+  text-transform: uppercase; letter-spacing: 0.5px;
+  color: #444; flex-shrink: 0;
+}
+
+/* ── Assembly root row ── */
+tr.asm-root td {
+  background: #f0f0f0;
+  font-weight: bold;
+  border-bottom: 2px solid #bbb;
+  color: #111;
+}
+
 /* ── Panel header ── */
 .pnl-header {
   background: #f0f0f0;
@@ -285,6 +303,8 @@ td.col-qty { text-align: center; }
 <!-- ── Assembly Navigator Panel ─────────────────────────────────────────── -->
 <div class="panel" id="panel">
   <div class="resize-handle" id="rhandle"></div>
+
+  <div class="pnl-title">Assembly Navigator</div>
 
   <div class="pnl-header">
     <div class="prod-icon">[ ]</div>
@@ -561,7 +581,16 @@ function renderRows() {
   table.style.display = '';
   empty.style.display = 'none';
 
-  document.getElementById('tbody').innerHTML = rows.map(n => {
+  const a = ASSEMBLY.assembly;
+  const asmCells = COLS.filter(c => c.visible).map(col => {
+    if (col.key === 'name') return `<td class="${col.cls}"><div class="tree-cell"><span class="lbl p">${a.product_name}</span></div></td>`;
+    if (col.key === 'id')   return `<td class="${col.cls}"><span class="id-code">${a.product_id}</span></td>`;
+    if (col.key === 'desc') return `<td class="${col.cls}">${a.description}</td>`;
+    return `<td class="${col.cls}"><span class="nil">—</span></td>`;
+  }).join('');
+  const asmRow = `<tr class="asm-root">${asmCells}</tr>`;
+
+  document.getElementById('tbody').innerHTML = asmRow + rows.map(n => {
     const cells = COLS.filter(c => c.visible).map(col => {
       switch (col.key) {
         case 'name': {
