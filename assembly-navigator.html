@@ -826,13 +826,14 @@ document.addEventListener('3d-contextmenu', e => {
 document.getElementById('ctx-scroll').addEventListener('click', () => {
   ctxMenu.style.display = 'none';
   if (!ctxTargetId) return;
-  ancestorIds(ctxTargetId).forEach(aid => { const n = byId(aid); if (n) n.expanded = true; });
+  const id = ctxTargetId;
+  ctxTargetId = null;
+  ancestorIds(id).forEach(aid => { const n = byId(aid); if (n) n.expanded = true; });
   render();
   requestAnimationFrame(() => {
-    document.querySelector(`#tbody tr[data-id="${ctxTargetId}"]`)
+    document.querySelector(`#tbody tr[data-id="${id}"]`)
       ?.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
   });
-  ctxTargetId = null;
 });
 
 // Hide context menu on any click or Escape
