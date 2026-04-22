@@ -120,14 +120,24 @@ tr.asm-root td {
 }
 .tb-row { display: flex; gap: 4px; align-items: center; }
 
+.search-wrap {
+  position: relative; flex: 1; min-width: 0; display: flex; align-items: stretch;
+}
 .search-input {
   background: #fff; border: 1px solid #bbb;
-  color: #111; padding: 3px 6px;
+  color: #111; padding: 3px 22px 3px 6px;
   font-size: 11px; outline: none; font-family: 'Segoe UI', Arial, sans-serif;
-  min-width: 0;
+  width: 100%; min-width: 0;
 }
 .search-input:focus { border-color: #666; }
 .search-input::placeholder { color: #bbb; }
+#btn-clear-search {
+  position: absolute; right: 5px; top: 50%; transform: translateY(-50%);
+  background: none; border: none; cursor: pointer;
+  color: #aaa; font-size: 12px; line-height: 1; padding: 0;
+  display: none;
+}
+#btn-clear-search:hover { color: #333; }
 
 .tb-btn {
   display: inline-flex; align-items: center; justify-content: center; gap: 3px;
@@ -367,7 +377,7 @@ tbody tr.row-hidden .node-btn { opacity: 1 !important; }
 
   <div class="pnl-title">
     Assembly Navigator
-    <button class="hdr-btn" id="btn-widen" title="Expand panel">
+    <button class="hdr-btn" id="btn-widen" title="Expand panel" style="display:none">
       <span id="widen-icon">&raquo;</span>
     </button>
   </div>
@@ -383,7 +393,7 @@ tbody tr.row-hidden .node-btn { opacity: 1 !important; }
     <!-- row 1: filter input -->
     <div class="tb-row">
       <div class="pflt-wrap" id="pflt-wrap">
-        <button class="tb-btn sq" id="btn-pflt" title="Filter by field">
+        <button class="tb-btn sq" id="btn-pflt" title="Filter by type">
           <svg width="11" height="11" viewBox="0 0 11 11" fill="none">
             <path d="M1 1.5h9L6.5 5v4.5l-2-1V5L1 1.5z" stroke="currentColor" stroke-width="1.2" stroke-linejoin="round"/>
           </svg>
@@ -400,8 +410,17 @@ tbody tr.row-hidden .node-btn { opacity: 1 !important; }
           </div>
         </div>
       </div>
-      <input class="search-input" id="inp-search" placeholder="Filter" autocomplete="off" style="flex:1">
-      <button class="tb-btn sq" id="btn-clear-search" title="Clear filter" style="display:none">&#x2715;</button>
+      <div class="search-wrap">
+        <input class="search-input" id="inp-search" placeholder="Key in a search term or select a filter type" autocomplete="off">
+        <button id="btn-clear-search" title="Clear filter">&#x2715;</button>
+      </div>
+      <button class="tb-btn sq" id="btn-filter-tree" title="Toggle tree/flat results">
+        <svg width="12" height="10" viewBox="0 0 12 10" fill="currentColor">
+          <rect x="0" y="0" width="7" height="1.8" rx="0.4"/>
+          <rect x="2" y="4.1" width="7" height="1.8" rx="0.4"/>
+          <rect x="4" y="8.2" width="7" height="1.8" rx="0.4"/>
+        </svg>
+      </button>
       <div class="col-wrap">
         <button class="tb-btn sq" id="btn-cols" title="Configure columns">
           <svg width="13" height="11" viewBox="0 0 13 11" fill="currentColor">
@@ -496,9 +515,10 @@ const COLS = [
 ];
 
 // ─── State ────────────────────────────────────────────────────────────────────
-let allNodes   = [];
-let search     = '';
-let selectedId = null;
+let allNodes    = [];
+let search      = '';
+let selectedId  = null;
+let filterTree  = false;
 
 const WIDE_WIDTH    = 640;
 const DEFAULT_WIDTH = 350;
@@ -575,16 +595,28 @@ function parseFilter(raw) {
 // ─── Visible rows (filter + expansion) ───────────────────────────────────────
 function isFiltering() { return parseFilter(search).term.length > 0; }
 
+function nodeMatchesSearch(n, field, term) {
+  if (field === 'material') return n.mat.toLowerCase().includes(term);
+  if (field === 'geometry') return n.geo.toLowerCase().includes(term);
+  return [n.name, n.id, n.mat, n.geo, n.spec, n.desc].some(v => v.toLowerCase().includes(term));
+}
+
 function visibleNodes() {
   const { field, term } = parseFilter(search);
   if (!term.length) return allNodes.filter(n => isVisible(n));
 
-  // Filter mode: return only direct matches as a flat list (no ancestors)
-  return allNodes.filter(n => {
-    if (field === 'material') return n.mat.toLowerCase().includes(term);
-    if (field === 'geometry') return n.geo.toLowerCase().includes(term);
-    return [n.name, n.id, n.mat, n.geo, n.spec, n.desc].some(v => v.toLowerCase().includes(term));
+  if (!filterTree) {
+    return allNodes.filter(n => nodeMatchesSearch(n, field, term));
+  }
+
+  // Tree mode: matches + all ancestors, in document order
+  const matchIds = new Set(allNodes.filter(n => nodeMatchesSearch(n, field, term)).map(n => n.id));
+  const showIds  = new Set(matchIds);
+  matchIds.forEach(id => {
+    let n = byId(id);
+    while (n?.parentId) { showIds.add(n.parentId); n = byId(n.parentId); }
   });
+  return allNodes.filter(n => showIds.has(n.id));
 }
 
 function matTag(m) {
@@ -692,7 +724,7 @@ function renderRows() {
     const cells = COLS.filter(c => c.visible).map(col => {
       switch (col.key) {
         case 'name': {
-          if (isFiltering()) {
+          if (isFiltering() && !filterTree) {
             return `<td class="${col.cls}"><div class="tree-cell">
               <span class="lbl ${n.hasKids ? 'p' : ''}">${n.name}</span>${nodeBtns}
             </div></td>`;
@@ -1075,6 +1107,14 @@ function setSearch(val) {
 
 inpSearch.addEventListener('input', e => setSearch(e.target.value));
 btnClearSrch.addEventListener('click', () => { setSearch(''); inpSearch.focus(); });
+
+const btnFilterTree = document.getElementById('btn-filter-tree');
+btnFilterTree.addEventListener('click', () => {
+  filterTree = !filterTree;
+  btnFilterTree.classList.toggle('active', filterTree);
+  btnFilterTree.title = filterTree ? 'Showing results in tree view' : 'Showing results as flat list';
+  render();
+});
 document.getElementById('btn-expand').addEventListener('click',   () => { allNodes.forEach(n => { n.expanded = true; });                render(); });
 document.getElementById('btn-collapse').addEventListener('click', () => { allNodes.forEach(n => { if (n.hasKids) n.expanded = false; }); render(); });
 
