@@ -734,7 +734,6 @@ function renderRows() {
       if (!n) return;
       if (btn.dataset.action === 'lock') {
         n.locked = !n.locked;
-        // deselect if the currently selected node is now effectively locked
         if (selectedId && isNodeLocked(selectedId)) {
           selectedId = null;
           document.dispatchEvent(new CustomEvent('asm-select', { detail: { id: null } }));
@@ -743,6 +742,7 @@ function renderRows() {
         n.hidden = !n.hidden;
         dispatchHiddenUpdate();
       }
+      saveNodeStates();
       render();
     });
   });
@@ -779,6 +779,22 @@ function updateStats(visible) {
 }
 
 function render() { renderHeader(); renderRows(); dispatchHiddenUpdate(); }
+
+// ─── Node state persistence ───────────────────────────────────────────────────
+const NODE_STATE_KEY = 'asm-nav-node-states';
+
+function saveNodeStates() {
+  const state = {};
+  allNodes.forEach(n => { if (n.locked || n.hidden) state[n.id] = { locked: n.locked, hidden: n.hidden }; });
+  localStorage.setItem(NODE_STATE_KEY, JSON.stringify(state));
+}
+
+function loadNodeStates() {
+  try {
+    const saved = JSON.parse(localStorage.getItem(NODE_STATE_KEY) || '{}');
+    allNodes.forEach(n => { if (saved[n.id]) { n.locked = !!saved[n.id].locked; n.hidden = !!saved[n.id].hidden; } });
+  } catch (_) {}
+}
 
 // ─── Column config UI ─────────────────────────────────────────────────────────
 const COL_STORAGE_KEY = 'asm-nav-cols';
@@ -1085,6 +1101,7 @@ allNodes = [{
 }, ...componentNodes];
 renderProductHeader();
 loadColConfig();
+loadNodeStates();
 render();
 updateWidenIcon();
 </script>
