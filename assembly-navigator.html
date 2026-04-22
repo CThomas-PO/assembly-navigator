@@ -23,6 +23,14 @@ body {
   background: #efefef;
 }
 #canvas-3d { width: 100%; height: 100%; display: block; }
+#viewer-disclaimer {
+  position: absolute; top: 0; left: 0; right: 0; z-index: 10;
+  background: rgba(255,255,255,0.72); border-bottom: 1px solid #ddd;
+  text-align: center; font-size: 10px; color: #888;
+  padding: 5px 16px;
+  pointer-events: none; user-select: none;
+  letter-spacing: 0.1px;
+}
 #viewer-hint {
   position: absolute; bottom: 8px; left: 0; right: 0;
   text-align: center; font-size: 10px; color: #999;
@@ -465,6 +473,7 @@ tbody tr.row-hidden .node-btn { opacity: 1 !important; }
 
 <!-- ── 3D Viewer ──────────────────────────────────────────────────────────── -->
 <div class="viewer-area">
+  <div id="viewer-disclaimer">This prototype is for demonstration purposes only of three new Navigator features: Filtering, Column Configuration, and Scroll to Item.</div>
   <canvas id="canvas-3d"></canvas>
   <div id="viewer-hint">Drag to orbit &nbsp;·&nbsp; Scroll to zoom &nbsp;·&nbsp; Select a part in the navigator to highlight it</div>
 </div>
