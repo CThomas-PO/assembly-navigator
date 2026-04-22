@@ -157,31 +157,60 @@ tr.asm-root td {
 .pflt-key  { font-family: 'Courier New', monospace; font-size: 11px; font-weight: bold; color: #222; }
 .pflt-desc { font-size: 10px; color: #888; }
 
-/* ── Column config panel ── */
+/* ── Column chooser modal ── */
 .col-wrap { position: relative; }
-.col-panel {
-  display: none;
-  position: absolute; top: calc(100% + 3px); right: 0;
-  background: #fff; border: 1px solid #aaa;
-  padding: 4px; min-width: 160px; z-index: 300;
-  box-shadow: 2px 3px 6px rgba(0,0,0,0.18);
+#col-modal-backdrop {
+  position: fixed; inset: 0;
+  background: rgba(0,0,0,0.3);
+  z-index: 500;
+  display: flex; align-items: center; justify-content: center;
 }
-.col-panel.open { display: block; }
-.col-hd {
-  padding: 4px 8px;
+#col-modal {
+  background: #fff; border: 1px solid #999;
+  box-shadow: 4px 8px 28px rgba(0,0,0,0.22);
+  width: 460px; font-family: 'Segoe UI', Arial, sans-serif;
+  font-size: 12px;
+}
+.col-modal-title {
+  background: #e4e4e4; border-bottom: 1px solid #bbb;
+  padding: 7px 12px;
+  font-size: 11px; font-weight: bold;
+  text-transform: uppercase; letter-spacing: 0.5px; color: #444;
+  display: flex; align-items: center; justify-content: space-between;
+}
+.col-modal-close {
+  background: none; border: none; cursor: pointer;
+  color: #666; font-size: 15px; line-height: 1;
+  font-family: inherit; padding: 0;
+}
+.col-modal-close:hover { color: #111; }
+.col-modal-body {
+  padding: 14px 16px;
+  display: flex; gap: 10px; align-items: stretch;
+}
+.col-list-section {
+  flex: 1; display: flex; flex-direction: column; gap: 5px; min-width: 0;
+}
+.col-list-section > span {
   font-size: 10px; font-weight: bold; color: #666;
-  border-bottom: 1px solid #ddd; margin-bottom: 2px;
-  text-transform: uppercase; letter-spacing: 0.4px;
+  text-transform: uppercase; letter-spacing: 0.3px;
 }
-.col-item {
-  display: flex; align-items: center; gap: 6px;
-  padding: 4px 8px; cursor: pointer;
-  font-size: 11px; color: #222;
+.col-list-section select {
+  flex: 1; height: 170px;
+  border: 1px solid #bbb; background: #fff;
+  font-family: 'Segoe UI', Arial, sans-serif;
+  font-size: 12px; color: #222;
+  padding: 2px; outline: none;
 }
-.col-item:hover { background: #f0f0f0; }
-.col-item.locked { opacity: 0.4; cursor: not-allowed; }
-.col-item.locked:hover { background: transparent; }
-.col-item input[type=checkbox] { width: 12px; height: 12px; flex-shrink: 0; cursor: pointer; }
+.col-list-section select:focus { border-color: #777; }
+.col-modal-arrows {
+  display: flex; flex-direction: column;
+  justify-content: center; gap: 6px; flex-shrink: 0; padding-top: 18px;
+}
+.col-modal-footer {
+  border-top: 1px solid #ddd; padding: 8px 16px;
+  display: flex; justify-content: flex-end; gap: 6px;
+}
 
 /* ── Stats bar ── */
 .stats-bar {
@@ -351,10 +380,6 @@ td.col-qty { text-align: center; }
       <button class="tb-btn sq" id="btn-clear-search" title="Clear filter" style="display:none">&#x2715;</button>
       <div class="col-wrap">
         <button class="tb-btn sq" id="btn-cols" title="Configure columns">Cols</button>
-        <div class="col-panel" id="col-panel">
-          <div class="col-hd">Visible Columns</div>
-          <div id="col-items"></div>
-        </div>
       </div>
     </div>
 
@@ -379,6 +404,34 @@ td.col-qty { text-align: center; }
       </svg>
       <h3>No results</h3>
       <p>Adjust search or filters</p>
+    </div>
+  </div>
+</div>
+
+<!-- ── Column chooser modal ──────────────────────────────────────────────────── -->
+<div id="col-modal-backdrop" style="display:none">
+  <div id="col-modal">
+    <div class="col-modal-title">
+      Configure Columns
+      <button class="col-modal-close" id="col-modal-x">&#x2715;</button>
+    </div>
+    <div class="col-modal-body">
+      <div class="col-list-section">
+        <span>Shown</span>
+        <select id="col-list-chosen" multiple></select>
+      </div>
+      <div class="col-modal-arrows">
+        <button class="tb-btn" id="col-move-left" title="Add to shown">&#8592;</button>
+        <button class="tb-btn" id="col-move-right" title="Remove from shown">&#8594;</button>
+      </div>
+      <div class="col-list-section">
+        <span>Available</span>
+        <select id="col-list-avail" multiple></select>
+      </div>
+    </div>
+    <div class="col-modal-footer">
+      <button class="tb-btn" id="col-modal-apply">Apply</button>
+      <button class="tb-btn" id="col-modal-cancel">Cancel</button>
     </div>
   </div>
 </div>
@@ -541,7 +594,6 @@ function bindHeaderDrag() {
       dragKey = dropKey = dropSide = null;
       saveColConfig();
       render();
-      renderColConfig();
     });
 
     th.addEventListener('dragend', () => {
@@ -673,19 +725,7 @@ function loadColConfig() {
   } catch (_) {}
 }
 
-function renderColConfig() {
-  document.getElementById('col-items').innerHTML = COLS.map(c => `
-    <label class="col-item ${c.locked ? 'locked' : ''}">
-      <input type="checkbox" data-key="${c.key}" ${c.visible ? 'checked' : ''} ${c.locked ? 'disabled' : ''}>
-      ${c.label}
-    </label>`).join('');
-  document.getElementById('col-items').querySelectorAll('input').forEach(cb => {
-    cb.addEventListener('change', e => {
-      const col = COLS.find(c => c.key === e.target.dataset.key);
-      if (col && !col.locked) { col.visible = e.target.checked; saveColConfig(); render(); }
-    });
-  });
-}
+// renderColConfig removed — replaced by modal
 
 function clearFilters() {
   search = '';
@@ -765,21 +805,67 @@ pfltPanel.querySelectorAll('.pflt-opt').forEach(opt => {
   });
 });
 
-// ─── Column config dropdown ───────────────────────────────────────────────────
-const colBtn   = document.getElementById('btn-cols');
-const colPanel = document.getElementById('col-panel');
-colBtn.addEventListener('click', e => {
-  e.stopPropagation();
-  colPanel.classList.toggle('open');
-  colBtn.classList.toggle('active', colPanel.classList.contains('open'));
+// ─── Column chooser modal ────────────────────────────────────────────────────
+const colModalBackdrop = document.getElementById('col-modal-backdrop');
+let modalChosen = [], modalAvail = [];
+
+function colKey(key) { return COLS.find(c => c.key === key); }
+
+function populateColModal() {
+  modalChosen = COLS.filter(c => c.visible  && !c.locked).map(c => c.key);
+  modalAvail  = COLS.filter(c => !c.visible && !c.locked).map(c => c.key);
+  syncColLists();
+}
+
+function syncColLists() {
+  const fmt = keys => keys.map(k => `<option value="${k}">${colKey(k).label}</option>`).join('');
+  document.getElementById('col-list-chosen').innerHTML = fmt(modalChosen);
+  document.getElementById('col-list-avail').innerHTML  = fmt(modalAvail);
+}
+
+function selectedVals(selId) {
+  return Array.from(document.getElementById(selId).selectedOptions).map(o => o.value);
+}
+
+document.getElementById('btn-cols').addEventListener('click', () => {
+  populateColModal();
+  colModalBackdrop.style.display = 'flex';
 });
 
-// Close both dropdowns on outside click
+document.getElementById('col-move-right').addEventListener('click', () => {
+  const sel = selectedVals('col-list-chosen');
+  modalChosen = modalChosen.filter(k => !sel.includes(k));
+  modalAvail  = [...modalAvail, ...sel];
+  syncColLists();
+});
+
+document.getElementById('col-move-left').addEventListener('click', () => {
+  const sel = selectedVals('col-list-avail');
+  modalAvail  = modalAvail.filter(k => !sel.includes(k));
+  modalChosen = [...modalChosen, ...sel];
+  syncColLists();
+});
+
+document.getElementById('col-modal-apply').addEventListener('click', () => {
+  COLS.forEach(c => { if (!c.locked) c.visible = modalChosen.includes(c.key); });
+  // Reorder: locked first, then chosen-in-order, then available
+  const locked  = COLS.filter(c => c.locked);
+  const chosen  = modalChosen.map(k => colKey(k));
+  const avail   = modalAvail.map(k => colKey(k));
+  COLS.length = 0;
+  [...locked, ...chosen, ...avail].forEach(c => COLS.push(c));
+  saveColConfig();
+  render();
+  colModalBackdrop.style.display = 'none';
+});
+
+function closeColModal() { colModalBackdrop.style.display = 'none'; }
+document.getElementById('col-modal-cancel').addEventListener('click', closeColModal);
+document.getElementById('col-modal-x').addEventListener('click', closeColModal);
+colModalBackdrop.addEventListener('click', e => { if (e.target === colModalBackdrop) closeColModal(); });
+
+// Close pre-filter dropdown on outside click
 document.addEventListener('click', e => {
-  if (!colPanel.contains(e.target) && e.target !== colBtn) {
-    colPanel.classList.remove('open');
-    colBtn.classList.remove('active');
-  }
   if (!pfltPanel.contains(e.target) && e.target !== pfltBtn) {
     pfltPanel.classList.remove('open');
     pfltBtn.classList.remove('active');
@@ -901,7 +987,6 @@ allNodes = [{
 }, ...componentNodes];
 renderProductHeader();
 loadColConfig();
-renderColConfig();
 render();
 updateWidenIcon();
 </script>
