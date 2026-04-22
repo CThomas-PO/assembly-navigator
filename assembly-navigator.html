@@ -916,18 +916,36 @@ document.addEventListener('3d-contextmenu', e => {
   ctxMenu.style.display = 'block';
 });
 
+function smoothScrollTo(el, target, ms) {
+  const start = el.scrollTop;
+  const dist  = target - start;
+  if (!dist) return;
+  const t0 = performance.now();
+  (function step(now) {
+    const p    = Math.min((now - t0) / ms, 1);
+    const ease = p < 0.5 ? 4*p*p*p : 1 - Math.pow(-2*p + 2, 3) / 2;
+    el.scrollTop = start + dist * ease;
+    if (p < 1) requestAnimationFrame(step);
+  })(t0);
+}
+
 function scrollRowIntoView(id) {
   const wrap = document.querySelector('.table-wrap');
   const row  = document.querySelector(`#tbody tr[data-id="${id}"]`);
   if (!wrap || !row) return;
+  const headH    = wrap.querySelector('thead')?.offsetHeight ?? 0;
   const wrapRect = wrap.getBoundingClientRect();
   const rowRect  = row.getBoundingClientRect();
-  const rowTop   = rowRect.top  - wrapRect.top  + wrap.scrollTop;
-  const rowBot   = rowTop + row.offsetHeight;
-  if (rowTop < wrap.scrollTop) {
-    wrap.scrollTop = rowTop - 4;
-  } else if (rowBot > wrap.scrollTop + wrap.clientHeight) {
-    wrap.scrollTop = rowBot - wrap.clientHeight + 4;
+  // Absolute position of row within the scroll container's content
+  const rowTop = rowRect.top - wrapRect.top + wrap.scrollTop;
+  const rowBot = rowTop + row.offsetHeight;
+  // Visible window starts below sticky header
+  const visTop = wrap.scrollTop + headH;
+  const visBot = wrap.scrollTop + wrap.clientHeight;
+  if (rowTop < visTop) {
+    smoothScrollTo(wrap, rowTop - headH - 4, 320);
+  } else if (rowBot > visBot) {
+    smoothScrollTo(wrap, rowBot - wrap.clientHeight + 4, 320);
   }
 }
 
@@ -940,7 +958,7 @@ document.getElementById('ctx-scroll').addEventListener('click', () => {
   ancestorIds(id).forEach(aid => { const n = byId(aid); if (n) n.expanded = true; });
   render();
   document.dispatchEvent(new CustomEvent('asm-select', { detail: { id: selectedId } }));
-  requestAnimationFrame(() => scrollRowIntoView(id));
+  scrollRowIntoView(id);
 });
 
 // Hide context menu on any click or Escape
