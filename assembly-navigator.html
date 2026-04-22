@@ -844,8 +844,10 @@ document.getElementById('ctx-scroll').addEventListener('click', () => {
   if (!ctxTargetId) return;
   const id = ctxTargetId;
   ctxTargetId = null;
+  selectedId = id;
   ancestorIds(id).forEach(aid => { const n = byId(aid); if (n) n.expanded = true; });
   render();
+  document.dispatchEvent(new CustomEvent('asm-select', { detail: { id: selectedId } }));
   requestAnimationFrame(() => scrollRowIntoView(id));
 });
 
