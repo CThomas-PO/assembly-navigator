@@ -233,6 +233,7 @@ th.col-desc { width: 150px; }
 tbody tr { border-bottom: 1px solid #efefef; cursor: default; }
 tbody tr:nth-child(even) { background: #fafafa; }
 tbody tr:hover    { background: #f0f0f0; }
+tbody tr.hovered  { background: #e8eef8 !important; }
 tbody tr.selected { background: #ddd; }
 
 td {
@@ -634,6 +635,12 @@ function renderRows() {
       render();
       document.dispatchEvent(new CustomEvent('asm-select', { detail: { id: selectedId } }));
     });
+    tr.addEventListener('mouseenter', () => {
+      document.dispatchEvent(new CustomEvent('nav-hover', { detail: { id: tr.dataset.id } }));
+    });
+    tr.addEventListener('mouseleave', () => {
+      document.dispatchEvent(new CustomEvent('nav-hover', { detail: { id: null } }));
+    });
   });
 
   updateStats(rows.length);
@@ -806,6 +813,14 @@ document.addEventListener('3d-select', e => {
   }
   render();
   document.dispatchEvent(new CustomEvent('asm-select', { detail: { id: selectedId } }));
+});
+
+// ─── 3D hover → navigator row highlight ──────────────────────────────────────
+document.addEventListener('3d-hover', e => {
+  document.querySelectorAll('#tbody tr.hovered').forEach(r => r.classList.remove('hovered'));
+  if (e.detail.id) {
+    document.querySelector(`#tbody tr[data-id="${e.detail.id}"]`)?.classList.add('hovered');
+  }
 });
 
 // ─── 3D context menu ─────────────────────────────────────────────────────────
@@ -1022,42 +1037,53 @@ cyl('COMP-006', 10, 5,  20, 100, -2.5, undefined, C.rubber);
 cyl('COMP-006', 10, 5, 260,  20, -2.5, undefined, C.rubber);
 cyl('COMP-006', 10, 5, 260, 100, -2.5, undefined, C.rubber);
 
-// ── Highlight ─────────────────────────────────────────────────────────────────
-function highlight(id) {
-  const isRoot = (id === 'TOASTER-001');
-  allMeshes.forEach(m => {
-    const pid   = m.userData.partId;
-    const match = !id || isRoot || pid === id || pid.startsWith(id + '-');
+// ── State ─────────────────────────────────────────────────────────────────────
+let _selPart = null;
+let _hovPart = null;
 
-    if (!id || isRoot) {
-      // No selection or root selected: restore all
-      m.material.color.setHex(m.userData.baseColor);
-      m.material.opacity = 0.88;
-      m.material.emissive.setHex(0x000000);
-      m.children.forEach(c => { if (c.isLineSegments) { c.material.opacity = 0.7; c.material.color.setHex(0x777777); } });
-    } else if (match) {
-      // Highlighted part
-      m.material.color.setHex(0xdd8800);
-      m.material.opacity = 1.0;
-      m.material.emissive.setHex(0x221100);
-      m.children.forEach(c => { if (c.isLineSegments) { c.material.opacity = 1.0; c.material.color.setHex(0x885500); } });
+// ── Highlight (selection + hover combined) ────────────────────────────────────
+function matches(pid, id) {
+  return id === 'TOASTER-001' || pid === id || pid.startsWith(id + '-');
+}
+
+function applyHighlight() {
+  const sel = _selPart, hov = _hovPart;
+  const anyActive = !!(sel || hov);
+  allMeshes.forEach(m => {
+    const pid      = m.userData.partId;
+    const hovered  = hov && matches(pid, hov);
+    const selected = sel && matches(pid, sel);
+
+    let col, opacity, emissive, edgeOpacity, edgeCol;
+    if (hovered) {
+      col = 0x88bbff; opacity = 1.0;  emissive = 0x001133;
+      edgeOpacity = 1.0;  edgeCol = 0x4477cc;
+    } else if (selected) {
+      col = 0xdd8800; opacity = 1.0;  emissive = 0x221100;
+      edgeOpacity = 1.0;  edgeCol = 0x885500;
+    } else if (anyActive) {
+      col = 0xaaaaaa; opacity = 0.12; emissive = 0x000000;
+      edgeOpacity = 0.06; edgeCol = 0x888888;
     } else {
-      // Dimmed part
-      m.material.color.setHex(0xaaaaaa);
-      m.material.opacity = 0.12;
-      m.material.emissive.setHex(0x000000);
-      m.children.forEach(c => { if (c.isLineSegments) { c.material.opacity = 0.06; c.material.color.setHex(0x888888); } });
+      col = m.userData.baseColor; opacity = 0.88; emissive = 0x000000;
+      edgeOpacity = 0.7;  edgeCol = 0x777777;
     }
+    m.material.color.setHex(col);
+    m.material.opacity = opacity;
+    m.material.emissive.setHex(emissive);
+    m.children.forEach(c => {
+      if (c.isLineSegments) { c.material.opacity = edgeOpacity; c.material.color.setHex(edgeCol); }
+    });
   });
 }
 
-// ── Event bridge: navigator → viewer ──────────────────────────────────────────
-document.addEventListener('asm-select', e => highlight(e.detail.id));
+// ── Event bridges ─────────────────────────────────────────────────────────────
+document.addEventListener('asm-select', e => { _selPart = e.detail.id; applyHighlight(); });
+document.addEventListener('nav-hover',  e => { _hovPart = e.detail.id; applyHighlight(); });
 
-// ── 3D picking: click mesh → select in navigator ───────────────────────────────
+// ── Raycasting ────────────────────────────────────────────────────────────────
 const raycaster = new THREE.Raycaster();
 const pointer   = new THREE.Vector2();
-let   _curSel   = null; // track current selection for toggle
 
 function raycastPart(e) {
   const rect = canvas.getBoundingClientRect();
@@ -1070,8 +1096,25 @@ function raycastPart(e) {
 
 canvas.addEventListener('click', e => {
   const id = raycastPart(e);
-  _curSel  = id === _curSel ? null : id;
-  document.dispatchEvent(new CustomEvent('3d-select', { detail: { id: _curSel } }));
+  _selPart = id === _selPart ? null : id;
+  document.dispatchEvent(new CustomEvent('3d-select', { detail: { id: _selPart } }));
+});
+
+canvas.addEventListener('mousemove', e => {
+  const id = raycastPart(e);
+  if (id !== _hovPart) {
+    _hovPart = id;
+    applyHighlight();
+    document.dispatchEvent(new CustomEvent('3d-hover', { detail: { id: _hovPart } }));
+  }
+});
+
+canvas.addEventListener('mouseleave', () => {
+  if (_hovPart !== null) {
+    _hovPart = null;
+    applyHighlight();
+    document.dispatchEvent(new CustomEvent('3d-hover', { detail: { id: null } }));
+  }
 });
 
 canvas.addEventListener('contextmenu', e => {
