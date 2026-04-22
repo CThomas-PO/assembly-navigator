@@ -1101,7 +1101,7 @@ const btnClearSrch = document.getElementById('btn-clear-search');
 function setSearch(val) {
   search = val;
   inpSearch.value = val;
-  btnClearSrch.style.display = val ? '' : 'none';
+  btnClearSrch.style.display = val ? 'block' : 'none';
   render();
 }
 
