@@ -455,7 +455,8 @@ td.col-qty { text-align: center; }
 
 <script>
 // ─── Assembly data ────────────────────────────────────────────────────────────
-const ASSEMBLY = {"assembly":{"product_name":"Toaster","product_id":"TOASTER-001","version":"2.0","description":"Standard 2-slice pop-up toaster assembly","units":"mm","coordinate_system":"right-hand Cartesian","overall_dimensions":{"length_mm":280,"width_mm":120,"height_mm":100},"components":[{"id":"COMP-001","name":"Outer Housing","quantity":1,"material":"Stainless Steel","sub_components":[{"id":"COMP-001-01","name":"Top Cover","quantity":1,"material":"Stainless Steel","geometry":{"type":"box","dimensions":{"length_mm":280,"width_mm":120,"height_mm":2},"origin":{"x":0,"y":0,"z":98}}},{"id":"COMP-001-02","name":"Side Panels","quantity":2,"material":"Stainless Steel","geometry":{"type":"box","dimensions":{"length_mm":280,"width_mm":2,"height_mm":100}}},{"id":"COMP-001-03","name":"Base Plate","quantity":1,"material":"Plastic (ABS)","geometry":{"type":"box","dimensions":{"length_mm":280,"width_mm":120,"height_mm":3},"origin":{"x":0,"y":0,"z":0}}},{"id":"COMP-001-04","name":"Crumb Tray","quantity":1,"material":"Stainless Steel","geometry":{"type":"box","dimensions":{"length_mm":238,"width_mm":98,"height_mm":8},"origin":{"x":21,"y":11,"z":0}}}]},{"id":"COMP-002","name":"Heating Assembly","quantity":1,"sub_components":[{"id":"COMP-002-01","name":"Heating Element","quantity":4,"material":"Nichrome Wire","specification":"800W rated","geometry":{"type":"flat_coil_panel","dimensions":{"length_mm":200,"width_mm":1.5,"height_mm":85}}},{"id":"COMP-002-02","name":"Mica Sheets (Insulator)","quantity":4,"material":"Mica","geometry":{"type":"box","dimensions":{"length_mm":200,"width_mm":1,"height_mm":85}}},{"id":"COMP-002-03","name":"Element Support Frame","quantity":2,"material":"Stainless Steel","geometry":{"type":"box","dimensions":{"length_mm":200,"width_mm":5,"height_mm":85}}}]},{"id":"COMP-003","name":"Carriage Mechanism","quantity":1,"description":"Bread lowering and ejection mechanism","sub_components":[{"id":"COMP-003-01","name":"Carriage Lever","quantity":1,"material":"Plastic (ABS)","geometry":{"type":"box","dimensions":{"length_mm":15,"width_mm":15,"height_mm":40},"origin":{"x":255,"y":55,"z":20}}},{"id":"COMP-003-02","name":"Carriage Rack","quantity":1,"material":"Stainless Steel","geometry":{"type":"box","dimensions":{"length_mm":200,"width_mm":80,"height_mm":5},"origin":{"x":40,"y":20,"z":15}}},{"id":"COMP-003-03","name":"Return Spring","quantity":1,"material":"Spring Steel","geometry":{"type":"coil_spring","dimensions":{"outer_diameter_mm":10,"wire_diameter_mm":1,"free_length_mm":50,"compressed_length_mm":20,"num_coils":12},"origin":{"x":255,"y":60,"z":10}}},{"id":"COMP-003-04","name":"Latch Assembly","quantity":1,"material":"Steel","sub_components":[{"id":"COMP-003-04-01","name":"Latch Hook","quantity":1,"material":"Steel","geometry":{"type":"L_bracket","dimensions":{"length_mm":20,"width_mm":5,"height_mm":15,"hook_depth_mm":5},"origin":{"x":252,"y":58,"z":18}}},{"id":"COMP-003-04-02","name":"Latch Spring","quantity":1,"material":"Spring Steel","geometry":{"type":"coil_spring","dimensions":{"outer_diameter_mm":5,"wire_diameter_mm":0.5,"free_length_mm":15,"compressed_length_mm":8,"num_coils":8},"origin":{"x":254,"y":60,"z":22}}}]}]},{"id":"COMP-004","name":"Control Assembly","quantity":1,"sub_components":[{"id":"COMP-004-01","name":"Browning Control Dial","quantity":1,"material":"Plastic (ABS)","geometry":{"type":"cylinder","dimensions":{"diameter_mm":20,"height_mm":10},"origin":{"x":230,"y":1,"z":40},"rotation_deg":{"rx":90,"ry":0,"rz":0}}},{"id":"COMP-004-02","name":"Thermostat / Timer PCB","quantity":1,"geometry":{"type":"box","dimensions":{"length_mm":60,"width_mm":40,"height_mm":2},"origin":{"x":190,"y":40,"z":12}}},{"id":"COMP-004-03","name":"Solenoid / Bimetallic Strip","quantity":1,"geometry":{"type":"box","dimensions":{"length_mm":40,"width_mm":5,"height_mm":3},"origin":{"x":200,"y":45,"z":16}}},{"id":"COMP-004-04","name":"Cancel Button","quantity":1,"material":"Plastic (ABS)","geometry":{"type":"cylinder","dimensions":{"diameter_mm":12,"height_mm":8},"origin":{"x":210,"y":1,"z":40},"rotation_deg":{"rx":90,"ry":0,"rz":0}}},{"id":"COMP-004-05","name":"Defrost / Reheat Buttons","quantity":2,"material":"Plastic (ABS)","geometry":{"type":"cylinder","dimensions":{"diameter_mm":12,"height_mm":8}}}]},{"id":"COMP-005","name":"Electrical Assembly","quantity":1,"sub_components":[{"id":"COMP-005-01","name":"Power Cord","quantity":1,"specification":"1000mm, 10A rated","geometry":{"type":"cylinder","dimensions":{"diameter_mm":6,"height_mm":1000},"origin":{"x":10,"y":60,"z":5},"rotation_deg":{"rx":90,"ry":0,"rz":0}}},{"id":"COMP-005-02","name":"Plug","quantity":1,"material":"Plastic (ABS)","geometry":{"type":"box","dimensions":{"length_mm":50,"width_mm":35,"height_mm":25},"origin":{"x":-60,"y":42,"z":0}}},{"id":"COMP-005-03","name":"Internal Wiring Harness","quantity":1,"material":"Copper wire with PVC insulation","geometry":{"type":"cable_bundle","dimensions":{"bundle_diameter_mm":8,"total_length_mm":350},"origin":{"x":10,"y":60,"z":10}}},{"id":"COMP-005-04","name":"Fuse","quantity":1,"specification":"13A","geometry":{"type":"cylinder","dimensions":{"diameter_mm":6,"height_mm":25},"origin":{"x":15,"y":60,"z":8},"rotation_deg":{"rx":0,"ry":90,"rz":0}}}]},{"id":"COMP-006","name":"Feet / Base Pads","quantity":4,"material":"Rubber","description":"Anti-slip feet attached to the base plate","geometry":{"type":"cylinder","dimensions":{"diameter_mm":20,"height_mm":5}}}]}};
+const ASSEMBLY = {"assembly":{"product_name":"AIR-008 Bicycle","product_id":"AIR-008","version":"1.0","description":"High-performance road bicycle","units":"mm","components":[{"id":"COMP-001","name":"Frame & Body","quantity":1,"sub_components":[{"id":"COMP-001-01","name":"Main Frame","quantity":1,"material":"Carbon Fiber","specification":"UD Carbon","mesh":"Frame"},{"id":"COMP-001-02","name":"Chainrings Cover","quantity":1,"material":"Plastic (ABS)","mesh":"ChainringsCover"}]},{"id":"COMP-002","name":"Front Wheel","quantity":1,"sub_components":[{"id":"COMP-002-01","name":"Rim","quantity":1,"material":"Aluminum Alloy","specification":"700c","mesh":"RimF"},{"id":"COMP-002-02","name":"Rim Inner","quantity":1,"material":"Aluminum Alloy","mesh":"RimInnerF"},{"id":"COMP-002-03","name":"Spokes","quantity":24,"material":"Stainless Steel","mesh":"SpokesF"},{"id":"COMP-002-04","name":"Hub","quantity":1,"material":"Aluminum Alloy","mesh":"HubF"},{"id":"COMP-002-05","name":"Fastening","quantity":1,"material":"Steel","mesh":"FasteningF"},{"id":"COMP-002-06","name":"Tire","quantity":1,"material":"Rubber","specification":"700c x 25c","mesh":"TireF"}]},{"id":"COMP-003","name":"Rear Wheel","quantity":1,"sub_components":[{"id":"COMP-003-01","name":"Rim","quantity":1,"material":"Aluminum Alloy","specification":"700c","mesh":"RimB"},{"id":"COMP-003-02","name":"Rim Inner","quantity":1,"material":"Aluminum Alloy","mesh":"RimInnerB"},{"id":"COMP-003-03","name":"Spokes","quantity":28,"material":"Stainless Steel","mesh":"SpokesB"},{"id":"COMP-003-04","name":"Hub","quantity":1,"material":"Aluminum Alloy","mesh":"HubB"},{"id":"COMP-003-05","name":"Fastening","quantity":1,"material":"Steel","mesh":"FasteningB"},{"id":"COMP-003-06","name":"Tire","quantity":1,"material":"Rubber","specification":"700c x 25c","mesh":"TireB"}]},{"id":"COMP-004","name":"Braking System","quantity":1,"sub_components":[{"id":"COMP-004-01","name":"Front Caliper","quantity":1,"material":"Aluminum Alloy","specification":"Hydraulic disc","mesh":"BrakeF"},{"id":"COMP-004-02","name":"Front Brake Pads","quantity":2,"material":"Composite","mesh":"BrakePadsF"},{"id":"COMP-004-03","name":"Front Cable","quantity":1,"material":"Stainless Steel","mesh":"BrakeCableF"},{"id":"COMP-004-04","name":"Front Detail","quantity":1,"material":"Aluminum Alloy","mesh":"BrakeDetailF"},{"id":"COMP-004-05","name":"Rear Caliper","quantity":1,"material":"Aluminum Alloy","specification":"Hydraulic disc","mesh":"BrakeB"},{"id":"COMP-004-06","name":"Rear Brake Pads","quantity":2,"material":"Composite","mesh":"BrakePadsB"},{"id":"COMP-004-07","name":"Rear Cable","quantity":1,"material":"Stainless Steel","mesh":"BrakeCableB"},{"id":"COMP-004-08","name":"Rear Detail","quantity":1,"material":"Aluminum Alloy","mesh":"BrakeDetailB"}]},{"id":"COMP-005","name":"Drivetrain","quantity":1,"sub_components":[{"id":"COMP-005-01","name":"Crank Arm","quantity":2,"material":"Carbon Fiber","mesh":"CrankArm"},{"id":"COMP-005-02","name":"Cassette","quantity":1,"material":"Steel","specification":"12-speed","mesh":"Cassette"},{"id":"COMP-005-03","name":"Chain (drive side)","quantity":1,"material":"Steel","specification":"KMC X12","mesh":"Chain1"},{"id":"COMP-005-04","name":"Chain (return)","quantity":1,"material":"Steel","mesh":"Chain2"}]},{"id":"COMP-006","name":"Pedals","quantity":2,"sub_components":[{"id":"COMP-006-01","name":"Left Pedal","quantity":1,"material":"Aluminum Alloy","mesh":"PedalL"},{"id":"COMP-006-02","name":"Left Pedal Grip","quantity":1,"material":"Rubber","mesh":"PedalGripL"},{"id":"COMP-006-03","name":"Right Pedal","quantity":1,"material":"Aluminum Alloy","mesh":"PedalR"},{"id":"COMP-006-04","name":"Right Pedal Grip","quantity":1,"material":"Rubber","mesh":"PedalGripR"}]},{"id":"COMP-007","name":"Cockpit","quantity":1,"sub_components":[{"id":"COMP-007-01","name":"Stem","quantity":1,"material":"Aluminum Alloy","mesh":"CockpitStem"},{"id":"COMP-007-02","name":"Handlebar","quantity":1,"material":"Carbon Fiber","mesh":"CockpitHandlebar"},{"id":"COMP-007-03","name":"Saddle","quantity":1,"material":"Synthetic Leather","mesh":"Seat"}]},{"id":"COMP-008","name":"Display Unit","quantity":1,"sub_components":[{"id":"COMP-008-01","name":"Face Panel A","quantity":1,"material":"Plastic (ABS)","mesh":"BoxFace1"},{"id":"COMP-008-02","name":"Face Panel B","quantity":1,"material":"Plastic (ABS)","mesh":"BoxFace2"},{"id":"COMP-008-03","name":"Face Panel C","quantity":1,"material":"Plastic (ABS)","mesh":"BoxFace3"},{"id":"COMP-008-04","name":"Face Panel D","quantity":1,"material":"Plastic (ABS)","mesh":"BoxFace4"}]}]}};
+window.ASSEMBLY = ASSEMBLY;
 
 // ─── Column definitions ───────────────────────────────────────────────────────
 // Default: only Name + Qty shown so it fits in 350px. User toggles more via Columns.
@@ -1016,183 +1017,188 @@ updateWidenIcon();
 </script>
 <script type="module">
 import * as THREE from 'three';
-import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+import { OrbitControls }  from 'three/addons/controls/OrbitControls.js';
+import { GLTFLoader }     from 'three/addons/loaders/GLTFLoader.js';
+import { DRACOLoader }    from 'three/addons/loaders/DRACOLoader.js';
+import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
 
-// ── Scene ─────────────────────────────────────────────────────────────────────
+// ── Renderer ──────────────────────────────────────────────────────────────────
 const canvas   = document.getElementById('canvas-3d');
 const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
 renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+renderer.outputColorSpace = THREE.SRGBColorSpace;
+renderer.toneMapping      = THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure = 1.0;
 
+// ── Scene ─────────────────────────────────────────────────────────────────────
 const scene = new THREE.Scene();
 scene.background = new THREE.Color(0xefefef);
 
-const camera = new THREE.PerspectiveCamera(40, 1, 1, 2000);
-camera.position.set(280, 160, 260);
-camera.lookAt(0, 0, 0);
+const pmrem = new THREE.PMREMGenerator(renderer);
+scene.environment = pmrem.fromScene(new RoomEnvironment(), 0.04).texture;
+pmrem.dispose();
+
+// ── Camera & Controls ─────────────────────────────────────────────────────────
+const camera = new THREE.PerspectiveCamera(40, 1, 0.1, 5000);
 
 const controls = new OrbitControls(camera, renderer.domElement);
 controls.enableDamping = true;
 controls.dampingFactor = 0.08;
-controls.minDistance   = 80;
-controls.maxDistance   = 900;
-controls.target.set(0, 0, 0);
 
-// ── Lighting ──────────────────────────────────────────────────────────────────
-scene.add(new THREE.AmbientLight(0xffffff, 0.7));
-const sun = new THREE.DirectionalLight(0xffffff, 0.85);
-sun.position.set(200, 300, 200);
-scene.add(sun);
-const fill = new THREE.DirectionalLight(0xddeeff, 0.3);
-fill.position.set(-200, 100, -200);
-scene.add(fill);
+// ── Grid (placed after load once we know bounding box) ───────────────────────
+let grid = null;
 
-// ── Grid ──────────────────────────────────────────────────────────────────────
-const grid = new THREE.GridHelper(500, 20, 0xbbbbbb, 0xdddddd);
-grid.position.y = -53;
-scene.add(grid);
-
-// ── Part registry ──────────────────────────────────────────────────────────────
+// ── Part registry ─────────────────────────────────────────────────────────────
 const allMeshes  = [];
 const partMeshes = {};
 
-function reg(id, mesh) {
-  mesh.userData.partId    = id;
-  mesh.userData.baseColor = mesh.material.color.getHex();
-  (partMeshes[id] = partMeshes[id] || []).push(mesh);
-  allMeshes.push(mesh);
-  scene.add(mesh);
+// Build meshName → compId from window.ASSEMBLY
+function buildMeshMap() {
+  const map = {};
+  const rootId = window.ASSEMBLY?.assembly?.product_id;
+  function walk(comps, parentId) {
+    if (!comps) return;
+    comps.forEach(c => {
+      if (c.mesh) map[c.mesh] = c.id;
+      if (c.sub_components) walk(c.sub_components, c.id);
+    });
+  }
+  walk(window.ASSEMBLY?.assembly?.components, rootId);
+  return map;
 }
 
-// ── Coordinate transform ───────────────────────────────────────────────────────
-// Assembly: X=Length[0-280], Y=Width[0-120], Z=Height[0-100], center=(140,60,50)
-// Three.js: x = ax-140,  y = az-50,  z = 60-ay
-function a2t(ax, ay, az) { return [ax - 140, az - 50, 60 - ay]; }
+// ── Hint element ─────────────────────────────────────────────────────────────
+const hint = document.getElementById('viewer-hint');
+function setHint(msg) { if (hint) { hint.textContent = msg; hint.style.display = msg ? 'block' : 'none'; } }
+setHint('Loading bicycle model…');
 
-// ── Box primitive (origin = min corner in asm mm; lx/wy/hz = asm dims) ─────────
-function box(id, lx, wy, hz, ox, oy, oz, hex) {
-  const [tx, ty, tz] = a2t(ox + lx / 2, oy + wy / 2, oz + hz / 2);
-  const geo  = new THREE.BoxGeometry(lx, hz, wy);
-  const mat  = new THREE.MeshPhongMaterial({ color: hex, shininess: 30, transparent: true, opacity: 0.88 });
-  const mesh = new THREE.Mesh(geo, mat);
-  mesh.position.set(tx, ty, tz);
-  mesh.add(new THREE.LineSegments(
-    new THREE.EdgesGeometry(geo),
-    new THREE.LineBasicMaterial({ color: 0x777777, transparent: true, opacity: 0.7 })
-  ));
-  reg(id, mesh);
-}
+// ── Load GLB ─────────────────────────────────────────────────────────────────
+const draco = new DRACOLoader();
+draco.setDecoderPath('https://www.gstatic.com/draco/versioned/decoders/1.5.6/');
 
-// ── Cylinder (cx/cy/cz = asm center coords) ────────────────────────────────────
-// Default: height along THREE Y (= asm Z, vertical)
-// axis 'x': rotation.x=PI/2  → height along THREE Z (= asm -Y, front/back)
-// axis 'z': rotation.z=PI/2  → height along THREE X (= asm X,  left/right)
-function cyl(id, r, h, cx, cy, cz, axis, hex) {
-  const [tx, ty, tz] = a2t(cx, cy, cz);
-  const geo  = new THREE.CylinderGeometry(r, r, h, 16);
-  const mat  = new THREE.MeshPhongMaterial({ color: hex, shininess: 30, transparent: true, opacity: 0.88 });
-  const mesh = new THREE.Mesh(geo, mat);
-  mesh.position.set(tx, ty, tz);
-  if (axis === 'x') mesh.rotation.x = Math.PI / 2;
-  if (axis === 'z') mesh.rotation.z = Math.PI / 2;
-  mesh.add(new THREE.LineSegments(
-    new THREE.EdgesGeometry(geo),
-    new THREE.LineBasicMaterial({ color: 0x777777, transparent: true, opacity: 0.7 })
-  ));
-  reg(id, mesh);
-}
+const loader = new GLTFLoader();
+loader.setDRACOLoader(draco);
 
-// ── Colors ────────────────────────────────────────────────────────────────────
-const C = {
-  steel:   0xc8c8c8,
-  plastic: 0xd4c090,
-  heat:    0xcc8855,
-  mica:    0xe8dcc8,
-  spring:  0x9898a8,
-  rubber:  0x484848,
-  pcb:     0x60a060,
-  copper:  0xaa8844,
-};
+const GLB_URL = 'https://raw.githubusercontent.com/Kirilbt/bike-demo-threejs/main/public/models/bike-model.glb';
 
-// ── COMP-001: Outer Housing ────────────────────────────────────────────────────
-box('COMP-001-01', 280, 120,   2,   0,   0, 98, C.steel);   // Top Cover
-box('COMP-001-02', 280,   2, 100,   0,   0,  0, C.steel);   // Side Panel (front y=0)
-box('COMP-001-02', 280,   2, 100,   0, 118,  0, C.steel);   // Side Panel (back y=118)
-box('COMP-001-03', 280, 120,   3,   0,   0,  0, C.plastic); // Base Plate
-box('COMP-001-04', 238,  98,   8,  21,  11,  0, C.steel);   // Crumb Tray
+loader.load(
+  GLB_URL,
+  gltf => {
+    const meshMap = buildMeshMap();
+    const rootId  = window.ASSEMBLY?.assembly?.product_id ?? 'BIKE';
 
-// ── COMP-002: Heating Assembly ─────────────────────────────────────────────────
-// 4 heating elements (thin vertical panels inside toaster)
-[24, 44, 74, 94].forEach(yd => box('COMP-002-01', 200, 1.5, 85, 40, yd, 5, C.heat));
-// 4 mica insulator sheets adjacent to elements
-[26, 46, 76, 96].forEach(yd => box('COMP-002-02', 200,   1, 85, 40, yd, 5, C.mica));
-// 2 support frames at each end
-box('COMP-002-03', 200,   5, 85,  40,   2, 5, C.steel);
-box('COMP-002-03', 200,   5, 85,  40, 113, 5, C.steel);
+    gltf.scene.traverse(node => {
+      if (!node.isMesh) return;
 
-// ── COMP-003: Carriage Mechanism ───────────────────────────────────────────────
-box('COMP-003-01',    15,  15,  40, 255,  55,  20, C.plastic);        // Lever
-box('COMP-003-02',   200,  80,   5,  40,  20,  15, C.steel);          // Rack
-cyl('COMP-003-03',     5,  50, 255,  60,  35, undefined, C.spring);   // Return Spring (vertical)
-box('COMP-003-04-01',  20,   5,  15, 252,  58,  18, C.steel);         // Latch Hook
-cyl('COMP-003-04-02', 2.5,  15, 254,  60, 29.5, undefined, C.spring); // Latch Spring
+      const compId = meshMap[node.name] ?? rootId;
+      node.userData.partId = compId;
 
-// ── COMP-004: Control Assembly ─────────────────────────────────────────────────
-// Buttons/dial on front face (asm y≈0), cylinder axis 'x' = protrudes along asm-Y outward
-cyl('COMP-004-01', 10,  10, 230,  -5, 40, 'x', C.plastic); // Browning Dial
-box('COMP-004-02',  60,  40,   2, 190,  40, 12, C.pcb);     // Thermostat PCB
-box('COMP-004-03',  40,   5,   3, 200,  45, 16, C.spring);  // Solenoid/Bimetallic
-cyl('COMP-004-04',   6,   8, 210,  -4, 40, 'x', C.plastic); // Cancel Button
-cyl('COMP-004-05',   6,   8, 170,  -4, 40, 'x', C.plastic); // Defrost Button
-cyl('COMP-004-05',   6,   8, 190,  -4, 40, 'x', C.plastic); // Reheat Button
+      // Clone material so we can mutate per-mesh without affecting siblings
+      const mats = Array.isArray(node.material) ? node.material : [node.material];
+      const cloned = mats.map(m => {
+        const c = m.clone();
+        c.transparent = true;
+        return c;
+      });
+      node.material = cloned.length === 1 ? cloned[0] : cloned;
+      node.userData.origMats = cloned.map(m => ({
+        color:   m.color.clone(),
+        emissive: m.emissive ? m.emissive.clone() : new THREE.Color(0),
+        opacity: m.opacity,
+        roughness: m.roughness,
+        metalness: m.metalness,
+      }));
 
-// ── COMP-005: Electrical Assembly ──────────────────────────────────────────────
-cyl('COMP-005-01',   3, 60,  10, 125,   5, 'x', C.copper); // Power Cord stub (exits back)
-box('COMP-005-02',  50, 35,  25, -70,  42,   0, C.plastic); // Plug (outside toaster)
-box('COMP-005-03', 200,   8,   8,  40,  56,   8, C.copper); // Internal Wiring Harness
-cyl('COMP-005-04',   3, 25,  28,  60,   8, 'z', C.copper);  // Fuse (horizontal along X)
+      (partMeshes[compId] = partMeshes[compId] || []).push(node);
+      allMeshes.push(node);
+    });
 
-// ── COMP-006: Feet (4 rubber pads at base corners) ─────────────────────────────
-cyl('COMP-006', 10, 5,  20,  20, -2.5, undefined, C.rubber);
-cyl('COMP-006', 10, 5,  20, 100, -2.5, undefined, C.rubber);
-cyl('COMP-006', 10, 5, 260,  20, -2.5, undefined, C.rubber);
-cyl('COMP-006', 10, 5, 260, 100, -2.5, undefined, C.rubber);
+    scene.add(gltf.scene);
+
+    // Auto-fit camera to model bounding box
+    const box3 = new THREE.Box3().setFromObject(gltf.scene);
+    const size  = box3.getSize(new THREE.Vector3());
+    const center = box3.getCenter(new THREE.Vector3());
+    const maxDim = Math.max(size.x, size.y, size.z);
+    const fovRad = THREE.MathUtils.degToRad(camera.fov);
+    const dist   = (maxDim / 2) / Math.tan(fovRad / 2) * 1.6;
+
+    camera.near = maxDim * 0.001;
+    camera.far  = maxDim * 20;
+    camera.position.set(center.x + dist * 0.6, center.y + dist * 0.4, center.z + dist * 0.8);
+    camera.lookAt(center);
+    camera.updateProjectionMatrix();
+
+    controls.target.copy(center);
+    controls.minDistance = maxDim * 0.1;
+    controls.maxDistance = maxDim * 8;
+    controls.update();
+
+    // Grid at base of model
+    const gridSize = maxDim * 2;
+    grid = new THREE.GridHelper(gridSize, 20, 0xbbbbbb, 0xdddddd);
+    grid.position.set(center.x, box3.min.y - 0.01, center.z);
+    scene.add(grid);
+
+    setHint('');
+    draco.dispose();
+  },
+  xhr => {
+    if (xhr.total) setHint(`Loading… ${Math.round(xhr.loaded / xhr.total * 100)}%`);
+  },
+  err => {
+    console.error('GLB load error', err);
+    setHint('Failed to load model.');
+  }
+);
 
 // ── State ─────────────────────────────────────────────────────────────────────
 let _selPart = null;
 let _hovPart = null;
 
-// ── Highlight (selection + hover combined) ────────────────────────────────────
-function matches(pid, id) {
-  return id === 'TOASTER-001' || pid === id || pid.startsWith(id + '-');
+// ── Highlight ─────────────────────────────────────────────────────────────────
+function getCompId(partId) { return partId; }
+
+function affectsId(meshPartId, targetId) {
+  const rootId = window.ASSEMBLY?.assembly?.product_id ?? 'BIKE';
+  return targetId === rootId || meshPartId === targetId || meshPartId.startsWith(targetId + '-');
+}
+
+function getMats(mesh) {
+  return Array.isArray(mesh.material) ? mesh.material : [mesh.material];
 }
 
 function applyHighlight() {
   const sel = _selPart, hov = _hovPart;
   const anyActive = !!(sel || hov);
+
   allMeshes.forEach(m => {
     const pid      = m.userData.partId;
-    const hovered  = hov && matches(pid, hov);
-    const selected = sel && matches(pid, sel);
+    const orig     = m.userData.origMats;
+    const hovered  = hov && affectsId(pid, hov);
+    const selected = sel && affectsId(pid, sel);
+    const mats     = getMats(m);
 
-    let col, opacity, emissive, edgeOpacity, edgeCol;
-    if (hovered) {
-      col = 0x88bbff; opacity = 1.0;  emissive = 0x001133;
-      edgeOpacity = 1.0;  edgeCol = 0x4477cc;
-    } else if (selected) {
-      col = 0xdd8800; opacity = 1.0;  emissive = 0x221100;
-      edgeOpacity = 1.0;  edgeCol = 0x885500;
-    } else if (anyActive) {
-      col = 0xaaaaaa; opacity = 0.12; emissive = 0x000000;
-      edgeOpacity = 0.06; edgeCol = 0x888888;
-    } else {
-      col = m.userData.baseColor; opacity = 0.88; emissive = 0x000000;
-      edgeOpacity = 0.7;  edgeCol = 0x777777;
-    }
-    m.material.color.setHex(col);
-    m.material.opacity = opacity;
-    m.material.emissive.setHex(emissive);
-    m.children.forEach(c => {
-      if (c.isLineSegments) { c.material.opacity = edgeOpacity; c.material.color.setHex(edgeCol); }
+    mats.forEach((mat, i) => {
+      const o = orig ? orig[Math.min(i, orig.length - 1)] : null;
+      if (hovered) {
+        mat.color.setHex(0x88bbff);
+        if (mat.emissive) mat.emissive.setHex(0x001133);
+        mat.opacity = 1.0;
+      } else if (selected) {
+        mat.color.setHex(0xdd8800);
+        if (mat.emissive) mat.emissive.setHex(0x221100);
+        mat.opacity = 1.0;
+      } else if (anyActive) {
+        mat.color.setHex(0xaaaaaa);
+        if (mat.emissive) mat.emissive.setHex(0x000000);
+        mat.opacity = 0.15;
+      } else if (o) {
+        mat.color.copy(o.color);
+        if (mat.emissive) mat.emissive.copy(o.emissive);
+        mat.opacity = 1.0;
+      }
+      mat.needsUpdate = true;
     });
   });
 }
