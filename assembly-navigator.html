@@ -307,20 +307,18 @@ td.col-qty { text-align: center; }
 .lbl.p { font-weight: bold; color: #111; }
 
 /* ── Node control buttons ── */
-.node-btns { margin-left: auto; display: flex; gap: 0; flex-shrink: 0; padding-left: 2px; }
+.node-btns { display: flex; gap: 0; flex-shrink: 0; padding-right: 2px; }
 .node-btn {
   width: 18px; height: 18px;
   display: inline-flex; align-items: center; justify-content: center;
   background: none; border: none; cursor: pointer; padding: 0; flex-shrink: 0;
-  color: #ccc; opacity: 0; transition: color 0.1s, opacity 0.1s;
+  color: #ccc; transition: color 0.1s;
 }
-tbody tr:hover .node-btn { opacity: 1; color: #bbb; }
-.node-btn:hover { color: #333 !important; opacity: 1 !important; }
-.node-btn.is-locked { opacity: 1 !important; color: #c07000; }
-.node-btn.is-hidden { opacity: 1 !important; color: #999; }
+.node-btn:hover { color: #333; }
+.node-btn.is-locked { color: #c07000; }
+.node-btn.is-hidden { color: #999; }
 tbody tr.row-locked .lbl { color: #999; font-style: italic; }
 tbody tr.row-hidden  td   { opacity: 0.45; }
-tbody tr.row-hidden .node-btn { opacity: 1 !important; }
 
 /* ── Cell text ── */
 .id-code  { font-family: 'Courier New', monospace; font-size: 10px; color: #555; }
@@ -726,7 +724,7 @@ function renderRows() {
         case 'name': {
           if (isFiltering() && !filterTree) {
             return `<td class="${col.cls}"><div class="tree-cell">
-              <span class="lbl ${n.hasKids ? 'p' : ''}">${n.name}</span>${nodeBtns}
+              ${nodeBtns}<span class="lbl ${n.hasKids ? 'p' : ''}">${n.name}</span>
             </div></td>`;
           }
           const pad = n.depth * 16;
@@ -734,8 +732,8 @@ function renderRows() {
             ? `<span class="xbtn" data-id="${n.id}">${n.expanded ? '&#9660;' : '&#9654;'}</span>`
             : `<span class="xbtn leaf">&#183;</span>`;
           return `<td class="${col.cls}"><div class="tree-cell">
-            <span class="indent" style="width:${pad}px"></span>${btn}
-            <span class="lbl ${n.hasKids ? 'p' : ''}">${n.name}</span>${nodeBtns}
+            <span class="indent" style="width:${pad}px"></span>${btn}${nodeBtns}
+            <span class="lbl ${n.hasKids ? 'p' : ''}">${n.name}</span>
           </div></td>`;
         }
         case 'id':   return `<td class="${col.cls}"><span class="id-code">${n.id}</span></td>`;
