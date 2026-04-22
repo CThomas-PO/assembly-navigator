@@ -348,6 +348,7 @@ td.col-qty { text-align: center; }
         </div>
       </div>
       <input class="search-input" id="inp-search" placeholder="Filter" autocomplete="off" style="flex:1">
+      <button class="tb-btn sq" id="btn-clear-search" title="Clear filter" style="display:none">&#x2715;</button>
       <div class="col-wrap">
         <button class="tb-btn sq" id="btn-cols" title="Configure columns">Cols</button>
         <div class="col-panel" id="col-panel">
@@ -468,34 +469,17 @@ function parseFilter(raw) {
 }
 
 // ─── Visible rows (filter + expansion) ───────────────────────────────────────
+function isFiltering() { return parseFilter(search).term.length > 0; }
+
 function visibleNodes() {
   const { field, term } = parseFilter(search);
-  const hasFilter = term.length > 0;
-  let matchSet = null;
+  if (!term.length) return allNodes.filter(n => isVisible(n));
 
-  if (hasFilter) {
-    matchSet = new Set();
-    for (const n of allNodes) {
-      let hit = false;
-      if (field === 'material') {
-        hit = n.mat.toLowerCase().includes(term);
-      } else if (field === 'geometry') {
-        hit = n.geo.toLowerCase().includes(term);
-      } else {
-        hit = [n.name, n.id, n.mat, n.geo, n.spec, n.desc]
-                .some(v => v.toLowerCase().includes(term));
-      }
-      if (hit) {
-        matchSet.add(n.id);
-        ancestorIds(n.id).forEach(a => matchSet.add(a));
-      }
-    }
-  }
-
+  // Filter mode: return only direct matches as a flat list (no ancestors)
   return allNodes.filter(n => {
-    if (matchSet && !matchSet.has(n.id)) return false;
-    if (matchSet) return true;
-    return isVisible(n);
+    if (field === 'material') return n.mat.toLowerCase().includes(term);
+    if (field === 'geometry') return n.geo.toLowerCase().includes(term);
+    return [n.name, n.id, n.mat, n.geo, n.spec, n.desc].some(v => v.toLowerCase().includes(term));
   });
 }
 
@@ -595,6 +579,11 @@ function renderRows() {
     const cells = COLS.filter(c => c.visible).map(col => {
       switch (col.key) {
         case 'name': {
+          if (isFiltering()) {
+            return `<td class="${col.cls}"><div class="tree-cell">
+              <span class="lbl ${n.hasKids ? 'p' : ''}">${n.name}</span>
+            </div></td>`;
+          }
           const pad = n.depth * 16;
           const btn = n.hasKids
             ? `<span class="xbtn" data-id="${n.id}">${n.expanded ? '&#9660;' : '&#9654;'}</span>`
@@ -768,14 +757,11 @@ pfltBtn.addEventListener('click', e => {
 });
 pfltPanel.querySelectorAll('.pflt-opt').forEach(opt => {
   opt.addEventListener('click', () => {
-    const inp = document.getElementById('inp-search');
-    inp.value = opt.dataset.prefix;
-    search = inp.value;
     pfltPanel.classList.remove('open');
     pfltBtn.classList.remove('active');
-    inp.focus();
-    inp.setSelectionRange(inp.value.length, inp.value.length);
-    render();
+    setSearch(opt.dataset.prefix);
+    inpSearch.focus();
+    inpSearch.setSelectionRange(inpSearch.value.length, inpSearch.value.length);
   });
 });
 
@@ -838,6 +824,21 @@ document.addEventListener('3d-contextmenu', e => {
   ctxMenu.style.display = 'block';
 });
 
+function scrollRowIntoView(id) {
+  const wrap = document.querySelector('.table-wrap');
+  const row  = document.querySelector(`#tbody tr[data-id="${id}"]`);
+  if (!wrap || !row) return;
+  const wrapRect = wrap.getBoundingClientRect();
+  const rowRect  = row.getBoundingClientRect();
+  const rowTop   = rowRect.top  - wrapRect.top  + wrap.scrollTop;
+  const rowBot   = rowTop + row.offsetHeight;
+  if (rowTop < wrap.scrollTop) {
+    wrap.scrollTop = rowTop - 4;
+  } else if (rowBot > wrap.scrollTop + wrap.clientHeight) {
+    wrap.scrollTop = rowBot - wrap.clientHeight + 4;
+  }
+}
+
 document.getElementById('ctx-scroll').addEventListener('click', () => {
   ctxMenu.style.display = 'none';
   if (!ctxTargetId) return;
@@ -845,10 +846,7 @@ document.getElementById('ctx-scroll').addEventListener('click', () => {
   ctxTargetId = null;
   ancestorIds(id).forEach(aid => { const n = byId(aid); if (n) n.expanded = true; });
   render();
-  requestAnimationFrame(() => {
-    document.querySelector(`#tbody tr[data-id="${id}"]`)
-      ?.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
-  });
+  requestAnimationFrame(() => scrollRowIntoView(id));
 });
 
 // Hide context menu on any click or Escape
@@ -856,7 +854,18 @@ document.addEventListener('click',   () => { ctxMenu.style.display = 'none'; });
 document.addEventListener('keydown', e => { if (e.key === 'Escape') ctxMenu.style.display = 'none'; });
 
 // ─── Toolbar events ───────────────────────────────────────────────────────────
-document.getElementById('inp-search').addEventListener('input', e => { search = e.target.value; render(); });
+const inpSearch    = document.getElementById('inp-search');
+const btnClearSrch = document.getElementById('btn-clear-search');
+
+function setSearch(val) {
+  search = val;
+  inpSearch.value = val;
+  btnClearSrch.style.display = val ? '' : 'none';
+  render();
+}
+
+inpSearch.addEventListener('input', e => setSearch(e.target.value));
+btnClearSrch.addEventListener('click', () => { setSearch(''); inpSearch.focus(); });
 document.getElementById('btn-expand').addEventListener('click',   () => { allNodes.forEach(n => { n.expanded = true; });                render(); });
 document.getElementById('btn-collapse').addEventListener('click', () => { allNodes.forEach(n => { if (n.hasKids) n.expanded = false; }); render(); });
 
