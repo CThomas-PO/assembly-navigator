@@ -285,8 +285,24 @@ td.col-qty { text-align: center; }
 }
 .xbtn:hover { color: #000; }
 .xbtn.leaf { cursor: default; color: #ccc; pointer-events: none; }
-.lbl { margin-left: 4px; overflow: hidden; text-overflow: ellipsis; font-size: 12px; color: #333; }
+.lbl { margin-left: 4px; overflow: hidden; text-overflow: ellipsis; font-size: 12px; color: #333; flex: 1; min-width: 0; }
 .lbl.p { font-weight: bold; color: #111; }
+
+/* ── Node control buttons ── */
+.node-btns { margin-left: auto; display: flex; gap: 0; flex-shrink: 0; padding-left: 2px; }
+.node-btn {
+  width: 18px; height: 18px;
+  display: inline-flex; align-items: center; justify-content: center;
+  background: none; border: none; cursor: pointer; padding: 0; flex-shrink: 0;
+  color: #ccc; opacity: 0; transition: color 0.1s, opacity 0.1s;
+}
+tbody tr:hover .node-btn { opacity: 1; color: #bbb; }
+.node-btn:hover { color: #333 !important; opacity: 1 !important; }
+.node-btn.is-locked { opacity: 1 !important; color: #c07000; }
+.node-btn.is-hidden { opacity: 1 !important; color: #999; }
+tbody tr.row-locked .lbl { color: #999; font-style: italic; }
+tbody tr.row-hidden  td   { opacity: 0.45; }
+tbody tr.row-hidden .node-btn { opacity: 1 !important; }
 
 /* ── Cell text ── */
 .id-code  { font-family: 'Courier New', monospace; font-size: 10px; color: #555; }
@@ -494,6 +510,8 @@ function buildNodes(comps, depth = 0, parentId = null) {
       depth, parentId,
       hasKids:  !!(c.sub_components?.length),
       expanded: true,
+      locked:   false,
+      hidden:   false,
     });
     if (c.sub_components?.length)
       list.push(...buildNodes(c.sub_components, depth + 1, c.id));
@@ -518,6 +536,23 @@ function isVisible(node) {
     pid = p.parentId;
   }
   return true;
+}
+
+function isNodeLocked(id) {
+  let n = byId(id);
+  while (n) { if (n.locked) return true; n = n.parentId ? byId(n.parentId) : null; }
+  return false;
+}
+
+function isNodeHidden(id) {
+  let n = byId(id);
+  while (n) { if (n.hidden) return true; n = n.parentId ? byId(n.parentId) : null; }
+  return false;
+}
+
+function dispatchHiddenUpdate() {
+  const ids = allNodes.filter(n => isNodeHidden(n.id)).map(n => n.id);
+  document.dispatchEvent(new CustomEvent('asm-hidden-update', { detail: { ids } }));
 }
 
 // ─── Filter parsing ───────────────────────────────────────────────────────────
@@ -634,13 +669,23 @@ function renderRows() {
   table.style.display = '';
   empty.style.display = 'none';
 
+  const ICON_LOCK_OPEN   = `<svg width="9" height="11" viewBox="0 0 9 11" fill="none"><rect x="0.6" y="4.8" width="7.8" height="5.6" rx="0.9" stroke="currentColor" stroke-width="1.15"/><path d="M2.8 4.8V3a1.7 1.7 0 0 1 3.4 0" stroke="currentColor" stroke-width="1.15" stroke-linecap="round"/></svg>`;
+  const ICON_LOCK_CLOSED = `<svg width="9" height="11" viewBox="0 0 9 11" fill="none"><rect x="0.6" y="4.8" width="7.8" height="5.6" rx="0.9" stroke="currentColor" stroke-width="1.15"/><path d="M2.8 4.8V3a1.7 1.7 0 0 1 3.4 0V4.8" stroke="currentColor" stroke-width="1.15" stroke-linecap="round"/></svg>`;
+  const ICON_EYE_ON      = `<svg width="12" height="8" viewBox="0 0 12 8" fill="none"><path d="M1 4C2.5 1 9.5 1 11 4C9.5 7 2.5 7 1 4Z" stroke="currentColor" stroke-width="1.15"/><circle cx="6" cy="4" r="1.5" stroke="currentColor" stroke-width="1.15"/></svg>`;
+  const ICON_EYE_OFF     = `<svg width="12" height="10" viewBox="0 0 12 10" fill="none"><path d="M1 5C2.5 2 9.5 2 11 5C9.5 8 2.5 8 1 5Z" stroke="currentColor" stroke-width="1.15"/><circle cx="6" cy="5" r="1.5" stroke="currentColor" stroke-width="1.15"/><line x1="1.5" y1="1" x2="10.5" y2="9" stroke="currentColor" stroke-width="1.15" stroke-linecap="round"/></svg>`;
+
   document.getElementById('tbody').innerHTML = rows.map(n => {
+    const nodeBtns = `<span class="node-btns">
+      <button class="node-btn vis-btn ${n.hidden ? 'is-hidden' : ''}" data-id="${n.id}" data-action="vis" title="${n.hidden ? 'Show' : 'Hide'}">${n.hidden ? ICON_EYE_OFF : ICON_EYE_ON}</button>
+      <button class="node-btn lock-btn ${n.locked ? 'is-locked' : ''}" data-id="${n.id}" data-action="lock" title="${n.locked ? 'Unlock' : 'Lock'}">${n.locked ? ICON_LOCK_CLOSED : ICON_LOCK_OPEN}</button>
+    </span>`;
+
     const cells = COLS.filter(c => c.visible).map(col => {
       switch (col.key) {
         case 'name': {
           if (isFiltering()) {
             return `<td class="${col.cls}"><div class="tree-cell">
-              <span class="lbl ${n.hasKids ? 'p' : ''}">${n.name}</span>
+              <span class="lbl ${n.hasKids ? 'p' : ''}">${n.name}</span>${nodeBtns}
             </div></td>`;
           }
           const pad = n.depth * 16;
@@ -649,7 +694,7 @@ function renderRows() {
             : `<span class="xbtn leaf">&#183;</span>`;
           return `<td class="${col.cls}"><div class="tree-cell">
             <span class="indent" style="width:${pad}px"></span>${btn}
-            <span class="lbl ${n.hasKids ? 'p' : ''}">${n.name}</span>
+            <span class="lbl ${n.hasKids ? 'p' : ''}">${n.name}</span>${nodeBtns}
           </div></td>`;
         }
         case 'id':   return `<td class="${col.cls}"><span class="id-code">${n.id}</span></td>`;
@@ -665,7 +710,12 @@ function renderRows() {
         default:     return `<td class="${col.cls}"><span class="nil">—</span></td>`;
       }
     }).join('');
-    const cls = [n.depth === 0 ? 'asm-root' : '', n.id === selectedId ? 'selected' : ''].filter(Boolean).join(' ');
+    const cls = [
+      n.depth === 0 ? 'asm-root' : '',
+      n.id === selectedId ? 'selected' : '',
+      isNodeLocked(n.id) ? 'row-locked' : '',
+      isNodeHidden(n.id) ? 'row-hidden'  : '',
+    ].filter(Boolean).join(' ');
     return `<tr data-id="${n.id}" class="${cls}">${cells}</tr>`;
   }).join('');
 
@@ -677,8 +727,29 @@ function renderRows() {
     });
   });
 
+  document.getElementById('tbody').querySelectorAll('.node-btn').forEach(btn => {
+    btn.addEventListener('click', e => {
+      e.stopPropagation();
+      const n = byId(btn.dataset.id);
+      if (!n) return;
+      if (btn.dataset.action === 'lock') {
+        n.locked = !n.locked;
+        // deselect if the currently selected node is now effectively locked
+        if (selectedId && isNodeLocked(selectedId)) {
+          selectedId = null;
+          document.dispatchEvent(new CustomEvent('asm-select', { detail: { id: null } }));
+        }
+      } else if (btn.dataset.action === 'vis') {
+        n.hidden = !n.hidden;
+        dispatchHiddenUpdate();
+      }
+      render();
+    });
+  });
+
   document.getElementById('tbody').querySelectorAll('tr').forEach(tr => {
     tr.addEventListener('click', () => {
+      if (isNodeLocked(tr.dataset.id)) return;
       selectedId = tr.dataset.id === selectedId ? null : tr.dataset.id;
       render();
       document.dispatchEvent(new CustomEvent('asm-select', { detail: { id: selectedId } }));
@@ -707,7 +778,7 @@ function updateStats(visible) {
   document.getElementById('clr-flt')?.addEventListener('click', clearFilters);
 }
 
-function render() { renderHeader(); renderRows(); }
+function render() { renderHeader(); renderRows(); dispatchHiddenUpdate(); }
 
 // ─── Column config UI ─────────────────────────────────────────────────────────
 const COL_STORAGE_KEY = 'asm-nav-cols';
@@ -1009,6 +1080,8 @@ allNodes = [{
   parentId: null,
   hasKids:  true,
   expanded: true,
+  locked:   false,
+  hidden:   false,
 }, ...componentNodes];
 renderProductHeader();
 loadColConfig();
@@ -1207,6 +1280,15 @@ function applyHighlight() {
 document.addEventListener('asm-select', e => { _selPart = e.detail.id; applyHighlight(); });
 document.addEventListener('nav-hover',  e => { _hovPart = e.detail.id; applyHighlight(); });
 
+document.addEventListener('asm-hidden-update', e => {
+  const hiddenIds = new Set(e.detail.ids);
+  allMeshes.forEach(m => { m.visible = !hiddenIds.has(m.userData.partId); });
+  // clear selection/hover if they were pointing at now-hidden parts
+  if (_selPart && hiddenIds.has(_selPart)) _selPart = null;
+  if (_hovPart && hiddenIds.has(_hovPart)) _hovPart = null;
+  applyHighlight();
+});
+
 // ── Raycasting ────────────────────────────────────────────────────────────────
 const raycaster = new THREE.Raycaster();
 const pointer   = new THREE.Vector2();
@@ -1216,7 +1298,7 @@ function raycastPart(e) {
   pointer.x =  ((e.clientX - rect.left)  / rect.width)  * 2 - 1;
   pointer.y = -((e.clientY - rect.top)   / rect.height) * 2 + 1;
   raycaster.setFromCamera(pointer, camera);
-  const hits = raycaster.intersectObjects(allMeshes, false).filter(h => h.object.isMesh);
+  const hits = raycaster.intersectObjects(allMeshes.filter(m => m.visible), false).filter(h => h.object.isMesh);
   return hits.length ? hits[0].object.userData.partId : null;
 }
 
