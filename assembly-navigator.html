@@ -272,10 +272,19 @@ th.drop-before { border-left:  2px solid #333 !important; }
 th.drop-after  { border-right: 2px solid #333 !important; }
 th.col-qty { text-align: center; }
 .col-resizer {
-  position: absolute; right: 0; top: 0; bottom: 0; width: 5px;
-  cursor: col-resize; z-index: 2;
+  position: absolute; right: 0; top: 0; bottom: 0; width: 6px;
+  cursor: col-resize !important; z-index: 20;
 }
 .col-resizer:hover, .col-resizer.active { background: rgba(0,0,0,0.18); }
+
+/* ── Sticky Name column ── */
+th.col-name { position: sticky; left: 0; z-index: 11; background: #f0f0f0; }
+td.col-name { position: sticky; left: 0; z-index: 1;  background: #fff; }
+tbody tr:nth-child(even) td.col-name { background: #fafafa; }
+tbody tr:hover    td.col-name { background: #f0f0f0; }
+tbody tr.hovered  td.col-name { background: #e8eef8; }
+tbody tr.selected td.col-name { background: #ddd; }
+tbody tr.row-hidden td.col-name { opacity: 0.45; }
 
 tbody tr { border-bottom: 1px solid #efefef; cursor: default; }
 tbody tr:nth-child(even) { background: #fafafa; }
@@ -738,7 +747,7 @@ function renderHeader() {
   document.getElementById('thead-row').innerHTML =
     COLS.filter(c => c.visible)
         .map(c => `<th class="${c.cls}" draggable="true" data-key="${c.key}" style="width:${colWidths[c.key] ?? 80}px">
-          ${c.label}<span class="col-resizer" data-key="${c.key}"></span>
+          ${c.label}<span class="col-resizer" data-key="${c.key}" draggable="false"></span>
         </th>`)
         .join('');
   bindHeaderDrag();
@@ -1149,11 +1158,12 @@ const inpSearch    = document.getElementById('inp-search');
 const btnClearSrch = document.getElementById('btn-clear-search');
 
 function setSearch(val) {
+  const wasEmpty = !parseFilter(search).term.length;
   search = val;
   inpSearch.value = val;
   btnClearSrch.style.display = val ? 'block' : 'none';
   btnFilterTree.disabled = !val;
-  autoExpandFilterAncestors();
+  if (filterTree && wasEmpty && parseFilter(val).term.length) autoExpandFilterAncestors();
   render();
 }
 
