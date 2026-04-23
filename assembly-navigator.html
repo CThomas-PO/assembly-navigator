@@ -965,9 +965,7 @@ function loadColConfig() {
 // renderColConfig removed — replaced by modal
 
 function clearFilters() {
-  search = '';
-  document.getElementById('inp-search').value = '';
-  render();
+  setSearch('');
 }
 
 // ─── Panel resize – drag handle ───────────────────────────────────────────────
@@ -1190,13 +1188,20 @@ const inpSearch    = document.getElementById('inp-search');
 const btnClearSrch = document.getElementById('btn-clear-search');
 
 function setSearch(val) {
+  const wasFiltering = isFiltering();
   const wasEmpty = !parseFilter(search).term.length;
   search = val;
   inpSearch.value = val;
   btnClearSrch.style.display = val ? 'block' : 'none';
   btnFilterTree.disabled = !val;
   if (filterTree && wasEmpty && parseFilter(val).term.length) autoExpandFilterAncestors();
+  if (wasFiltering && !isFiltering() && lastClickedId) {
+    ancestorIds(lastClickedId).forEach(aid => { const n = byId(aid); if (n) n.expanded = true; });
+  }
   render();
+  if (wasFiltering && !isFiltering() && lastClickedId && selectedIds.has(lastClickedId)) {
+    requestAnimationFrame(() => scrollRowIntoView(lastClickedId));
+  }
 }
 
 inpSearch.addEventListener('input', e => setSearch(e.target.value));
