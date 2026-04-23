@@ -592,17 +592,8 @@ function isVisible(node) {
   return true;
 }
 
-function isNodeLocked(id) {
-  let n = byId(id);
-  while (n) { if (n.locked) return true; n = n.parentId ? byId(n.parentId) : null; }
-  return false;
-}
-
-function isNodeHidden(id) {
-  let n = byId(id);
-  while (n) { if (n.hidden) return true; n = n.parentId ? byId(n.parentId) : null; }
-  return false;
-}
+function isNodeLocked(id) { const n = byId(id); return n ? n.locked : false; }
+function isNodeHidden(id) { const n = byId(id); return n ? n.hidden : false; }
 
 function dispatchHiddenUpdate() {
   const ids = allNodes.filter(n => isNodeHidden(n.id)).map(n => n.id);
