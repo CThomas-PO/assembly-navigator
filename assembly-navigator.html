@@ -634,7 +634,7 @@ function autoExpandFilterAncestors() {
 
 function visibleNodes() {
   const { field, term } = parseFilter(search);
-  if (!term.length) return allNodes.filter(n => isVisible(n));
+  if (!isFiltering()) return allNodes.filter(n => isVisible(n));
 
   if (!filterTree) {
     return allNodes.filter(n => nodeMatchesSearch(n, field, term));
