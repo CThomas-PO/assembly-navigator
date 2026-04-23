@@ -277,14 +277,6 @@ th.col-qty { text-align: center; }
 }
 .col-resizer:hover, .col-resizer.active { background: rgba(0,0,0,0.18); }
 
-/* ── Sticky Name column ── */
-th.col-name { position: sticky; left: 0; z-index: 11; background: #f0f0f0; }
-td.col-name { position: sticky; left: 0; z-index: 1;  background: #fff; }
-tbody tr:nth-child(even) td.col-name { background: #fafafa; }
-tbody tr:hover    td.col-name { background: #f0f0f0; }
-tbody tr.hovered  td.col-name { background: #e8eef8; }
-tbody tr.selected td.col-name { background: #ddd; }
-tbody tr.row-hidden td.col-name { opacity: 0.45; }
 
 tbody tr { border-bottom: 1px solid #efefef; cursor: default; }
 tbody tr:nth-child(even) { background: #fafafa; }
@@ -646,10 +638,7 @@ const DEFAULT_COL_WIDTHS = { name: 160, id: 112, qty: 44, mat: 138, geo: 118, sp
 const colWidths = { ...DEFAULT_COL_WIDTHS };
 
 function applyTableWidth() {
-  const wrap  = document.querySelector('.table-wrap');
-  const total = COLS.filter(c => c.visible).reduce((s, c) => s + (colWidths[c.key] ?? 80), 0);
-  const w = wrap && total > wrap.clientWidth ? total + 'px' : '100%';
-  document.getElementById('nav-table').style.width = w;
+  document.getElementById('nav-table').style.width = '100%';
 }
 
 // ─── Column drag-reorder ──────────────────────────────────────────────────────
@@ -747,13 +736,36 @@ function bindHeaderResize() {
       const key    = handle.dataset.key;
       const th     = handle.closest('th');
       const colIdx = Array.from(document.querySelectorAll('#thead-row th')).indexOf(th);
-      let maxW = th.scrollWidth;
+
+      // Measure natural text widths using an off-screen span
+      const ruler = document.createElement('span');
+      ruler.style.cssText = 'position:absolute;visibility:hidden;white-space:nowrap;top:-9999px;left:-9999px';
+      document.body.appendChild(ruler);
+
+      // Header (bold, slightly larger)
+      ruler.style.font = getComputedStyle(th).font;
+      ruler.textContent = (th.childNodes[0]?.textContent ?? '').trim();
+      let maxW = ruler.offsetWidth + 18; // match th padding (7px each side + border)
+
+      // Body cells
       document.querySelectorAll('#tbody tr').forEach(tr => {
         const td = tr.cells[colIdx];
-        if (td) maxW = Math.max(maxW, td.scrollWidth);
+        if (!td) return;
+        ruler.style.font = getComputedStyle(td).font;
+        const inner = td.querySelector('.lbl, .id-code, .qty-pill, .mat-tag, .geo-tag, .spec-text');
+        ruler.textContent = (inner ?? td).textContent.trim();
+        let w = ruler.offsetWidth + 16; // td padding 7px each side
+        if (key === 'name') {
+          // add indent width + expand btn (14px) + two node btns (36px)
+          const indent = td.querySelector('.indent');
+          w += (indent ? indent.offsetWidth : 0) + 14 + 36;
+        }
+        if (w > maxW) maxW = w;
       });
-      colWidths[key] = maxW;
-      th.style.width = maxW + 'px';
+
+      document.body.removeChild(ruler);
+      colWidths[key] = Math.ceil(maxW) + 4;
+      th.style.width  = colWidths[key] + 'px';
       applyTableWidth();
     });
   });
