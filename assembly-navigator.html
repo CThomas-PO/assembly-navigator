@@ -149,6 +149,7 @@ tr.asm-root td {
 }
 .tb-btn:hover { background: #ebebeb; border-color: #888; }
 .tb-btn.active { background: #ddd; border-color: #666; color: #111; font-weight: bold; }
+.tb-btn:disabled { opacity: 0.35; cursor: default; pointer-events: none; }
 .tb-btn.sq { padding: 3px 6px; }
 
 /* ── Pre-filter dropdown ── */
@@ -1100,6 +1101,7 @@ function setSearch(val) {
   search = val;
   inpSearch.value = val;
   btnClearSrch.style.display = val ? 'block' : 'none';
+  btnFilterTree.disabled = !val;
   render();
 }
 
@@ -1107,6 +1109,7 @@ inpSearch.addEventListener('input', e => setSearch(e.target.value));
 btnClearSrch.addEventListener('click', () => { setSearch(''); inpSearch.focus(); });
 
 const btnFilterTree = document.getElementById('btn-filter-tree');
+btnFilterTree.disabled = true;
 btnFilterTree.addEventListener('click', () => {
   filterTree = !filterTree;
   btnFilterTree.classList.toggle('active', filterTree);
