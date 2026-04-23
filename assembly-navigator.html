@@ -590,6 +590,7 @@ function dispatchHiddenUpdate() {
   const ids = allNodes.filter(n => isNodeHidden(n.id)).map(n => n.id);
   document.dispatchEvent(new CustomEvent('asm-hidden-update', { detail: { ids } }));
 }
+document.addEventListener('asm-request-hidden-sync', dispatchHiddenUpdate);
 
 // ─── Filter parsing ───────────────────────────────────────────────────────────
 // Supports:  plain text, :material <term>, :geometry <term>
@@ -647,8 +648,8 @@ const colWidths = { ...DEFAULT_COL_WIDTHS };
 function applyTableWidth() {
   const wrap  = document.querySelector('.table-wrap');
   const total = COLS.filter(c => c.visible).reduce((s, c) => s + (colWidths[c.key] ?? 80), 0);
-  const w     = Math.max(total, wrap ? wrap.clientWidth : 0);
-  document.getElementById('nav-table').style.width = w + 'px';
+  const w = wrap && total > wrap.clientWidth ? total + 'px' : '100%';
+  document.getElementById('nav-table').style.width = w;
 }
 
 // ─── Column drag-reorder ──────────────────────────────────────────────────────
@@ -738,6 +739,22 @@ function bindHeaderResize() {
       };
       document.addEventListener('mousemove', onMove);
       document.addEventListener('mouseup', onUp);
+    });
+
+    handle.addEventListener('dblclick', e => {
+      e.preventDefault();
+      e.stopPropagation();
+      const key    = handle.dataset.key;
+      const th     = handle.closest('th');
+      const colIdx = Array.from(document.querySelectorAll('#thead-row th')).indexOf(th);
+      let maxW = th.scrollWidth;
+      document.querySelectorAll('#tbody tr').forEach(tr => {
+        const td = tr.cells[colIdx];
+        if (td) maxW = Math.max(maxW, td.scrollWidth);
+      });
+      colWidths[key] = maxW;
+      th.style.width = maxW + 'px';
+      applyTableWidth();
     });
   });
 }
@@ -1345,6 +1362,8 @@ loader.load(
 
     setHint('');
     draco.dispose();
+    // Apply any visibility state that was set before the model finished loading
+    document.dispatchEvent(new CustomEvent('asm-request-hidden-sync'));
   },
   xhr => {
     if (xhr.total) setHint(`Loading… ${Math.round(xhr.loaded / xhr.total * 100)}%`);
