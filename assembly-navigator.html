@@ -501,6 +501,11 @@ tbody tr.row-hidden  td   { opacity: 0.45; }
 const ASSEMBLY = {"assembly":{"product_name":"AIR-008 Bicycle","product_id":"AIR-008","version":"1.0","description":"High-performance road bicycle","units":"mm","components":[{"id":"COMP-001","name":"Frame & Body","quantity":1,"sub_components":[{"id":"COMP-001-01","name":"Main Frame","quantity":1,"material":"Carbon Fiber","specification":"UD Carbon","mesh":"Frame"},{"id":"COMP-001-02","name":"Chainrings Cover","quantity":1,"material":"Plastic (ABS)","mesh":"ChainringsCover"}]},{"id":"COMP-002","name":"Front Wheel","quantity":1,"sub_components":[{"id":"COMP-002-01","name":"Rim","quantity":1,"material":"Aluminum Alloy","specification":"700c","mesh":"RimF"},{"id":"COMP-002-02","name":"Rim Inner","quantity":1,"material":"Aluminum Alloy","mesh":"RimInnerF"},{"id":"COMP-002-03","name":"Spokes","quantity":24,"material":"Stainless Steel","mesh":"SpokesF"},{"id":"COMP-002-04","name":"Hub","quantity":1,"material":"Aluminum Alloy","mesh":"HubF"},{"id":"COMP-002-05","name":"Fastening","quantity":1,"material":"Steel","mesh":"FasteningF"},{"id":"COMP-002-06","name":"Tire","quantity":1,"material":"Rubber","specification":"700c x 25c","mesh":"TireF"}]},{"id":"COMP-003","name":"Rear Wheel","quantity":1,"sub_components":[{"id":"COMP-003-01","name":"Rim","quantity":1,"material":"Aluminum Alloy","specification":"700c","mesh":"RimB"},{"id":"COMP-003-02","name":"Rim Inner","quantity":1,"material":"Aluminum Alloy","mesh":"RimInnerB"},{"id":"COMP-003-03","name":"Spokes","quantity":28,"material":"Stainless Steel","mesh":"SpokesB"},{"id":"COMP-003-04","name":"Hub","quantity":1,"material":"Aluminum Alloy","mesh":"HubB"},{"id":"COMP-003-05","name":"Fastening","quantity":1,"material":"Steel","mesh":"FasteningB"},{"id":"COMP-003-06","name":"Tire","quantity":1,"material":"Rubber","specification":"700c x 25c","mesh":"TireB"}]},{"id":"COMP-004","name":"Braking System","quantity":1,"sub_components":[{"id":"COMP-004-01","name":"Front Caliper","quantity":1,"material":"Aluminum Alloy","specification":"Hydraulic disc","mesh":"BrakeF"},{"id":"COMP-004-02","name":"Front Brake Pads","quantity":2,"material":"Composite","mesh":"BrakePadsF"},{"id":"COMP-004-03","name":"Front Cable","quantity":1,"material":"Stainless Steel","mesh":"BrakeCableF"},{"id":"COMP-004-04","name":"Front Detail","quantity":1,"material":"Aluminum Alloy","mesh":"BrakeDetailF"},{"id":"COMP-004-05","name":"Rear Caliper","quantity":1,"material":"Aluminum Alloy","specification":"Hydraulic disc","mesh":"BrakeB"},{"id":"COMP-004-06","name":"Rear Brake Pads","quantity":2,"material":"Composite","mesh":"BrakePadsB"},{"id":"COMP-004-07","name":"Rear Cable","quantity":1,"material":"Stainless Steel","mesh":"BrakeCableB"},{"id":"COMP-004-08","name":"Rear Detail","quantity":1,"material":"Aluminum Alloy","mesh":"BrakeDetailB"}]},{"id":"COMP-005","name":"Drivetrain","quantity":1,"sub_components":[{"id":"COMP-005-01","name":"Crank Arm","quantity":2,"material":"Carbon Fiber","mesh":"CrankArm"},{"id":"COMP-005-02","name":"Cassette","quantity":1,"material":"Steel","specification":"12-speed","mesh":"Cassette"},{"id":"COMP-005-03","name":"Chain (drive side)","quantity":1,"material":"Steel","specification":"KMC X12","mesh":"Chain1"},{"id":"COMP-005-04","name":"Chain (return)","quantity":1,"material":"Steel","mesh":"Chain2"}]},{"id":"COMP-006","name":"Pedals","quantity":2,"sub_components":[{"id":"COMP-006-01","name":"Left Pedal","quantity":1,"material":"Aluminum Alloy","mesh":"PedalL"},{"id":"COMP-006-02","name":"Left Pedal Grip","quantity":1,"material":"Rubber","mesh":"PedalGripL"},{"id":"COMP-006-03","name":"Right Pedal","quantity":1,"material":"Aluminum Alloy","mesh":"PedalR"},{"id":"COMP-006-04","name":"Right Pedal Grip","quantity":1,"material":"Rubber","mesh":"PedalGripR"}]},{"id":"COMP-007","name":"Cockpit","quantity":1,"sub_components":[{"id":"COMP-007-01","name":"Stem","quantity":1,"material":"Aluminum Alloy","mesh":"CockpitStem"},{"id":"COMP-007-02","name":"Handlebar","quantity":1,"material":"Carbon Fiber","mesh":"CockpitHandlebar"},{"id":"COMP-007-03","name":"Saddle","quantity":1,"material":"Synthetic Leather","mesh":"Seat"}]},{"id":"COMP-008","name":"Display Unit","quantity":1,"sub_components":[{"id":"COMP-008-01","name":"Face Panel A","quantity":1,"material":"Plastic (ABS)","mesh":"BoxFace1"},{"id":"COMP-008-02","name":"Face Panel B","quantity":1,"material":"Plastic (ABS)","mesh":"BoxFace2"},{"id":"COMP-008-03","name":"Face Panel C","quantity":1,"material":"Plastic (ABS)","mesh":"BoxFace3"},{"id":"COMP-008-04","name":"Face Panel D","quantity":1,"material":"Plastic (ABS)","mesh":"BoxFace4"}]}]}};
 window.ASSEMBLY = ASSEMBLY;
 
+// ─── HTML escaping ────────────────────────────────────────────────────────────
+function esc(s) {
+  return String(s ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+}
+
 // ─── Column definitions ───────────────────────────────────────────────────────
 // Default: only Name + Qty shown so it fits in 350px. User toggles more via Columns.
 const COLS = [
@@ -548,7 +553,9 @@ function buildNodes(comps, depth = 0, parentId = null) {
   return list;
 }
 
-function byId(id) { return allNodes.find(n => n.id === id); }
+let nodeMap = new Map();
+function byId(id) { return nodeMap.get(id); }
+function rebuildNodeMap() { nodeMap = new Map(allNodes.map(n => [n.id, n])); }
 
 function ancestorIds(id) {
   const s = new Set();
@@ -631,7 +638,8 @@ function visibleNodes() {
 
 function matTag(m) {
   if (!m) return '<span class="nil">—</span>';
-  return `<span class="mat-tag" title="${m}">${m}</span>`;
+  const em = esc(m);
+  return `<span class="mat-tag" title="${em}">${em}</span>`;
 }
 
 // ─── Column widths ────────────────────────────────────────────────────────────
@@ -639,7 +647,8 @@ const DEFAULT_COL_WIDTHS = { name: 160, id: 112, qty: 44, mat: 138, geo: 118, sp
 const colWidths = { ...DEFAULT_COL_WIDTHS };
 
 function applyTableWidth() {
-  document.getElementById('nav-table').style.width = '100%';
+  const tbl = document.getElementById('nav-table');
+  if (tbl.style.width !== '100%') tbl.style.width = '100%';
 }
 
 // ─── Column drag-reorder ──────────────────────────────────────────────────────
@@ -695,7 +704,7 @@ function bindHeaderDrag() {
       COLS.splice(dropSide === 'after' ? tgtIdx + 1 : tgtIdx, 0, col);
       dragKey = dropKey = dropSide = null;
       saveColConfig();
-      render();
+      renderHeader(); render();
     });
 
     th.addEventListener('dragend', () => {
@@ -805,9 +814,10 @@ function renderRows() {
   const ICON_EYE_OFF     = `<svg width="12" height="10" viewBox="0 0 12 10" fill="none"><path d="M1 5C2.5 2 9.5 2 11 5C9.5 8 2.5 8 1 5Z" stroke="currentColor" stroke-width="1.15"/><circle cx="6" cy="5" r="1.5" stroke="currentColor" stroke-width="1.15"/><line x1="1.5" y1="1" x2="10.5" y2="9" stroke="currentColor" stroke-width="1.15" stroke-linecap="round"/></svg>`;
 
   document.getElementById('tbody').innerHTML = rows.map(n => {
+    const nid = esc(n.id);
     const nodeBtns = `<span class="node-btns">
-      <button class="node-btn vis-btn ${n.hidden ? 'is-hidden' : ''}" data-id="${n.id}" data-action="vis" title="${n.hidden ? 'Show' : 'Hide'}">${n.hidden ? ICON_EYE_OFF : ICON_EYE_ON}</button>
-      <button class="node-btn lock-btn ${n.locked ? 'is-locked' : ''}" data-id="${n.id}" data-action="lock" title="${n.locked ? 'Unlock' : 'Lock'}">${n.locked ? ICON_LOCK_CLOSED : ICON_LOCK_OPEN}</button>
+      <button class="node-btn vis-btn ${n.hidden ? 'is-hidden' : ''}" data-id="${nid}" data-action="vis" title="${n.hidden ? 'Show' : 'Hide'}">${n.hidden ? ICON_EYE_OFF : ICON_EYE_ON}</button>
+      <button class="node-btn lock-btn ${n.locked ? 'is-locked' : ''}" data-id="${nid}" data-action="lock" title="${n.locked ? 'Unlock' : 'Lock'}">${n.locked ? ICON_LOCK_CLOSED : ICON_LOCK_OPEN}</button>
     </span>`;
 
     const cells = COLS.filter(c => c.visible).map(col => {
@@ -815,28 +825,28 @@ function renderRows() {
         case 'name': {
           if (isFiltering() && !filterTree) {
             return `<td class="${col.cls}"><div class="tree-cell">
-              ${nodeBtns}<span class="lbl ${n.hasKids ? 'p' : ''}">${n.name}</span>
+              ${nodeBtns}<span class="lbl ${n.hasKids ? 'p' : ''}">${esc(n.name)}</span>
             </div></td>`;
           }
           const pad = n.depth * 16;
           const btn = n.hasKids
-            ? `<span class="xbtn" data-id="${n.id}">${n.expanded ? '&#9660;' : '&#9654;'}</span>`
+            ? `<span class="xbtn" data-id="${nid}">${n.expanded ? '&#9660;' : '&#9654;'}</span>`
             : `<span class="xbtn leaf">&#183;</span>`;
           return `<td class="${col.cls}"><div class="tree-cell">
             <span class="indent" style="width:${pad}px"></span>${btn}${nodeBtns}
-            <span class="lbl ${n.hasKids ? 'p' : ''}">${n.name}</span>
+            <span class="lbl ${n.hasKids ? 'p' : ''}">${esc(n.name)}</span>
           </div></td>`;
         }
-        case 'id':   return `<td class="${col.cls}"><span class="id-code">${n.id}</span></td>`;
+        case 'id':   return `<td class="${col.cls}"><span class="id-code">${esc(n.id)}</span></td>`;
         case 'qty':  return `<td class="${col.cls}"><span class="qty-pill">${n.qty}</span></td>`;
         case 'mat':  return `<td class="${col.cls}">${matTag(n.mat)}</td>`;
         case 'geo':  return n.geo
-          ? `<td class="${col.cls}"><span class="geo-tag">${n.geo}</span></td>`
+          ? `<td class="${col.cls}"><span class="geo-tag">${esc(n.geo)}</span></td>`
           : `<td class="${col.cls}"><span class="nil">—</span></td>`;
         case 'spec': return n.spec
-          ? `<td class="${col.cls}"><span class="spec-text">${n.spec}</span></td>`
+          ? `<td class="${col.cls}"><span class="spec-text">${esc(n.spec)}</span></td>`
           : `<td class="${col.cls}"><span class="nil">—</span></td>`;
-        case 'desc': return `<td class="${col.cls}" title="${n.desc}">${n.desc || '<span class="nil">—</span>'}</td>`;
+        case 'desc': return `<td class="${col.cls}" title="${esc(n.desc)}">${esc(n.desc) || '<span class="nil">—</span>'}</td>`;
         default:     return `<td class="${col.cls}"><span class="nil">—</span></td>`;
       }
     }).join('');
@@ -846,7 +856,7 @@ function renderRows() {
       isNodeLocked(n.id) ? 'row-locked' : '',
       isNodeHidden(n.id) ? 'row-hidden'  : '',
     ].filter(Boolean).join(' ');
-    return `<tr data-id="${n.id}" class="${cls}">${cells}</tr>`;
+    return `<tr data-id="${nid}" class="${cls}">${cells}</tr>`;
   }).join('');
 
   document.getElementById('tbody').querySelectorAll('.xbtn:not(.leaf)').forEach(btn => {
@@ -921,7 +931,7 @@ function updateStats(visible) {
   document.getElementById('clr-flt')?.addEventListener('click', clearFilters);
 }
 
-function render() { renderHeader(); renderRows(); applyTableWidth(); dispatchHiddenUpdate(); }
+function render() { renderRows(); applyTableWidth(); }
 
 // ─── Node state persistence ───────────────────────────────────────────────────
 const NODE_STATE_KEY = 'asm-nav-node-states';
@@ -1090,7 +1100,7 @@ document.getElementById('col-modal-apply').addEventListener('click', () => {
   COLS.length = 0;
   [...locked, ...chosen, ...avail].forEach(c => COLS.push(c));
   saveColConfig();
-  render();
+  renderHeader(); render();
   colModalBackdrop.style.display = 'none';
 });
 
@@ -1123,7 +1133,7 @@ document.addEventListener('3d-select', e => {
 document.addEventListener('3d-hover', e => {
   document.querySelectorAll('#tbody tr.hovered').forEach(r => r.classList.remove('hovered'));
   if (e.detail.id) {
-    document.querySelector(`#tbody tr[data-id="${e.detail.id}"]`)?.classList.add('hovered');
+    document.querySelector(`#tbody tr[data-id="${CSS.escape(e.detail.id)}"]`)?.classList.add('hovered');
   }
 });
 
@@ -1157,7 +1167,7 @@ function smoothScrollTo(el, target, ms) {
 
 function scrollRowIntoView(id) {
   const wrap = document.querySelector('.table-wrap');
-  const row  = document.querySelector(`#tbody tr[data-id="${id}"]`);
+  const row  = document.querySelector(`#tbody tr[data-id="${CSS.escape(id)}"]`);
   if (!wrap || !row) return;
   const headH  = wrap.querySelector('thead')?.offsetHeight ?? 0;
   const rowTop = row.getBoundingClientRect().top - wrap.getBoundingClientRect().top + wrap.scrollTop;
@@ -1224,7 +1234,7 @@ function renderProductHeader() {
   const a = ASSEMBLY.assembly;
   document.getElementById('hdr-name').textContent = a.product_name;
   document.getElementById('hdr-chips').innerHTML  =
-    `<span class="chip">${a.product_id}</span><span class="chip">v${a.version}</span><span class="chip">${a.units}</span>`;
+    `<span class="chip">${esc(a.product_id)}</span><span class="chip">v${esc(a.version)}</span><span class="chip">${esc(a.units)}</span>`;
 }
 
 // ─── Init ─────────────────────────────────────────────────────────────────────
@@ -1252,7 +1262,8 @@ allNodes = [{
 renderProductHeader();
 loadColConfig();
 loadNodeStates();
-render();
+rebuildNodeMap();
+renderHeader(); render();
 updateWidenIcon();
 </script>
 <script type="module">
@@ -1411,14 +1422,15 @@ function getMats(mesh) {
 }
 
 function applyHighlight() {
-  const hov = _hovPart;
-  const anyActive = !!(_selParts.size || hov);
+  const hov     = _hovPart;
+  const selArr  = [..._selParts];
+  const anyActive = !!(selArr.length || hov);
 
   allMeshes.forEach(m => {
     const pid      = m.userData.partId;
     const orig     = m.userData.origMats;
     const hovered  = hov && affectsId(pid, hov);
-    const selected = _selParts.size > 0 && [..._selParts].some(s => affectsId(pid, s));
+    const selected = selArr.length > 0 && selArr.some(s => affectsId(pid, s));
     const mats     = getMats(m);
 
     mats.forEach((mat, i) => {
