@@ -399,13 +399,13 @@ tbody tr.row-hidden  td   { opacity: 0.45; }
         </button>
         <div class="pflt-panel" id="pflt-panel">
           <div class="pflt-hd">Filter by field <span style="font-weight:normal;text-transform:none;letter-spacing:0">(for demo purposes only)</span></div>
-          <div class="pflt-opt" data-prefix=":visible">
+          <div class="pflt-opt" data-prefix=":visible ">
             <span class="pflt-key">:visible</span>
-            <span class="pflt-desc">show only visible nodes</span>
+            <span class="pflt-desc">visible nodes, optionally narrowed by term</span>
           </div>
-          <div class="pflt-opt" data-prefix=":hidden">
+          <div class="pflt-opt" data-prefix=":hidden ">
             <span class="pflt-key">:hidden</span>
-            <span class="pflt-desc">show only hidden nodes</span>
+            <span class="pflt-desc">hidden nodes, optionally narrowed by term</span>
           </div>
           <div style="border-top:1px solid #eee;margin:3px 0"></div>
           <div class="pflt-opt" data-prefix=":material ">
@@ -616,11 +616,12 @@ function isFiltering() {
 }
 
 function nodeMatchesSearch(n, field, term) {
-  if (field === 'visible')  return !isNodeHidden(n.id);
-  if (field === 'hidden')   return isNodeHidden(n.id);
+  const matchesTerm = !term || [n.name, n.id, n.mat, n.geo, n.spec, n.desc].some(v => v.toLowerCase().includes(term));
+  if (field === 'visible')  return !isNodeHidden(n.id) && matchesTerm;
+  if (field === 'hidden')   return isNodeHidden(n.id)  && matchesTerm;
   if (field === 'material') return n.mat.toLowerCase().includes(term);
   if (field === 'geometry') return n.geo.toLowerCase().includes(term);
-  return [n.name, n.id, n.mat, n.geo, n.spec, n.desc].some(v => v.toLowerCase().includes(term));
+  return matchesTerm;
 }
 
 function autoExpandFilterAncestors() {
