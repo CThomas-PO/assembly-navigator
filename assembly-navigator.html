@@ -566,6 +566,15 @@ let nodeMap = new Map();
 function byId(id) { return nodeMap.get(id); }
 function rebuildNodeMap() { nodeMap = new Map(allNodes.map(n => [n.id, n])); }
 
+function descendants(id) {
+  const result = [];
+  function walk(nodeId) {
+    allNodes.forEach(n => { if (n.parentId === nodeId) { result.push(n); walk(n.id); } });
+  }
+  walk(id);
+  return result;
+}
+
 function ancestorIds(id) {
   const s = new Set();
   let n = byId(id);
@@ -889,10 +898,12 @@ function renderRows() {
       if (!n) return;
       if (btn.dataset.action === 'lock') {
         n.locked = !n.locked;
+        descendants(n.id).forEach(d => { d.locked = n.locked; });
         [...selectedIds].forEach(sid => { if (isNodeLocked(sid)) selectedIds.delete(sid); });
         document.dispatchEvent(new CustomEvent('asm-select', { detail: { ids: [...selectedIds] } }));
       } else if (btn.dataset.action === 'vis') {
         n.hidden = !n.hidden;
+        descendants(n.id).forEach(d => { d.hidden = n.hidden; });
         dispatchHiddenUpdate();
       }
       saveNodeStates();
