@@ -1138,20 +1138,12 @@ function scrollRowIntoView(id) {
   const wrap = document.querySelector('.table-wrap');
   const row  = document.querySelector(`#tbody tr[data-id="${id}"]`);
   if (!wrap || !row) return;
-  const headH    = wrap.querySelector('thead')?.offsetHeight ?? 0;
-  const wrapRect = wrap.getBoundingClientRect();
-  const rowRect  = row.getBoundingClientRect();
-  // Absolute position of row within the scroll container's content
-  const rowTop = rowRect.top - wrapRect.top + wrap.scrollTop;
-  const rowBot = rowTop + row.offsetHeight;
-  // Visible window starts below sticky header
-  const visTop = wrap.scrollTop + headH;
-  const visBot = wrap.scrollTop + wrap.clientHeight;
-  if (rowTop < visTop) {
-    smoothScrollTo(wrap, rowTop - headH - 4, 320);
-  } else if (rowBot > visBot) {
-    smoothScrollTo(wrap, rowBot - wrap.clientHeight + 4, 320);
-  }
+  const headH  = wrap.querySelector('thead')?.offsetHeight ?? 0;
+  const rowTop = row.getBoundingClientRect().top - wrap.getBoundingClientRect().top + wrap.scrollTop;
+  const visH   = wrap.clientHeight - headH;
+  // Aim to place the row in the middle of the visible area below the header
+  const target = rowTop - headH - visH / 2 + row.offsetHeight / 2;
+  smoothScrollTo(wrap, Math.max(0, target), 320);
 }
 
 document.getElementById('ctx-scroll').addEventListener('click', () => {
