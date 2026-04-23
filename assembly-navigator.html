@@ -399,6 +399,15 @@ tbody tr.row-hidden  td   { opacity: 0.45; }
         </button>
         <div class="pflt-panel" id="pflt-panel">
           <div class="pflt-hd">Filter by field <span style="font-weight:normal;text-transform:none;letter-spacing:0">(for demo purposes only)</span></div>
+          <div class="pflt-opt" data-prefix=":visible">
+            <span class="pflt-key">:visible</span>
+            <span class="pflt-desc">show only visible nodes</span>
+          </div>
+          <div class="pflt-opt" data-prefix=":hidden">
+            <span class="pflt-key">:hidden</span>
+            <span class="pflt-desc">show only hidden nodes</span>
+          </div>
+          <div style="border-top:1px solid #eee;margin:3px 0"></div>
           <div class="pflt-opt" data-prefix=":material ">
             <span class="pflt-key">:material</span>
             <span class="pflt-desc">filter by material type</span>
@@ -601,16 +610,21 @@ function parseFilter(raw) {
 }
 
 // ─── Visible rows (filter + expansion) ───────────────────────────────────────
-function isFiltering() { return parseFilter(search).term.length > 0; }
+function isFiltering() {
+  const { field, term } = parseFilter(search);
+  return term.length > 0 || field === 'visible' || field === 'hidden';
+}
 
 function nodeMatchesSearch(n, field, term) {
+  if (field === 'visible')  return !isNodeHidden(n.id);
+  if (field === 'hidden')   return isNodeHidden(n.id);
   if (field === 'material') return n.mat.toLowerCase().includes(term);
   if (field === 'geometry') return n.geo.toLowerCase().includes(term);
   return [n.name, n.id, n.mat, n.geo, n.spec, n.desc].some(v => v.toLowerCase().includes(term));
 }
 
 function autoExpandFilterAncestors() {
-  if (!filterTree || !parseFilter(search).term.length) return;
+  if (!filterTree || !isFiltering()) return;
   const { field, term } = parseFilter(search);
   allNodes.filter(n => nodeMatchesSearch(n, field, term)).forEach(match => {
     let n = byId(match.parentId);
@@ -1204,7 +1218,7 @@ function setSearch(val) {
   inpSearch.value = val;
   btnClearSrch.style.display = val ? 'block' : 'none';
   btnFilterTree.disabled = !val;
-  if (filterTree && wasEmpty && parseFilter(val).term.length) autoExpandFilterAncestors();
+  if (filterTree && !wasFiltering && isFiltering()) autoExpandFilterAncestors();
   if (wasFiltering && !isFiltering() && lastClickedId) {
     ancestorIds(lastClickedId).forEach(aid => { const n = byId(aid); if (n) n.expanded = true; });
   }
