@@ -516,8 +516,9 @@ const COLS = [
 // ─── State ────────────────────────────────────────────────────────────────────
 let allNodes    = [];
 let search      = '';
-let selectedId  = null;
-let filterTree  = false;
+let selectedIds   = new Set();
+let lastClickedId = null;
+let filterTree    = false;
 
 const WIDE_WIDTH    = 640;
 const DEFAULT_WIDTH = 350;
@@ -841,7 +842,7 @@ function renderRows() {
     }).join('');
     const cls = [
       n.depth === 0 ? 'asm-root' : '',
-      n.id === selectedId ? 'selected' : '',
+      selectedIds.has(n.id) ? 'selected' : '',
       isNodeLocked(n.id) ? 'row-locked' : '',
       isNodeHidden(n.id) ? 'row-hidden'  : '',
     ].filter(Boolean).join(' ');
@@ -863,10 +864,8 @@ function renderRows() {
       if (!n) return;
       if (btn.dataset.action === 'lock') {
         n.locked = !n.locked;
-        if (selectedId && isNodeLocked(selectedId)) {
-          selectedId = null;
-          document.dispatchEvent(new CustomEvent('asm-select', { detail: { id: null } }));
-        }
+        [...selectedIds].forEach(sid => { if (isNodeLocked(sid)) selectedIds.delete(sid); });
+        document.dispatchEvent(new CustomEvent('asm-select', { detail: { ids: [...selectedIds] } }));
       } else if (btn.dataset.action === 'vis') {
         n.hidden = !n.hidden;
         dispatchHiddenUpdate();
@@ -877,11 +876,26 @@ function renderRows() {
   });
 
   document.getElementById('tbody').querySelectorAll('tr').forEach(tr => {
-    tr.addEventListener('click', () => {
-      if (isNodeLocked(tr.dataset.id)) return;
-      selectedId = tr.dataset.id === selectedId ? null : tr.dataset.id;
+    tr.addEventListener('click', e => {
+      const id = tr.dataset.id;
+      if (isNodeLocked(id)) return;
+      if (e.ctrlKey || e.metaKey) {
+        if (selectedIds.has(id)) selectedIds.delete(id);
+        else { selectedIds.add(id); lastClickedId = id; }
+      } else if (e.shiftKey && lastClickedId) {
+        const vis = visibleNodes();
+        const a = vis.findIndex(n => n.id === lastClickedId);
+        const b = vis.findIndex(n => n.id === id);
+        if (a >= 0 && b >= 0) {
+          const [lo, hi] = a < b ? [a, b] : [b, a];
+          vis.slice(lo, hi + 1).forEach(n => { if (!isNodeLocked(n.id)) selectedIds.add(n.id); });
+        }
+      } else {
+        if (selectedIds.size === 1 && selectedIds.has(id)) { selectedIds.clear(); lastClickedId = null; }
+        else { selectedIds.clear(); selectedIds.add(id); lastClickedId = id; }
+      }
       render();
-      document.dispatchEvent(new CustomEvent('asm-select', { detail: { id: selectedId } }));
+      document.dispatchEvent(new CustomEvent('asm-select', { detail: { ids: [...selectedIds] } }));
     });
     tr.addEventListener('mouseenter', () => {
       document.dispatchEvent(new CustomEvent('nav-hover', { detail: { id: tr.dataset.id } }));
@@ -1097,17 +1111,14 @@ document.addEventListener('click', e => {
 
 // ─── 3D → navigator selection bridge ─────────────────────────────────────────
 document.addEventListener('3d-select', e => {
-  const incoming = e.detail.id;
-  selectedId = incoming === selectedId ? null : incoming;
-  // Ensure ancestor nodes are expanded so the selected row is visible
-  if (selectedId) {
-    ancestorIds(selectedId).forEach(aid => {
-      const n = byId(aid);
-      if (n) n.expanded = true;
-    });
-  }
+  const incoming = e.detail.ids || [];
+  selectedIds = new Set(incoming);
+  if (incoming.length === 1) lastClickedId = incoming[0];
+  selectedIds.forEach(id => {
+    ancestorIds(id).forEach(aid => { const n = byId(aid); if (n) n.expanded = true; });
+  });
   render();
-  document.dispatchEvent(new CustomEvent('asm-select', { detail: { id: selectedId } }));
+  document.dispatchEvent(new CustomEvent('asm-select', { detail: { ids: [...selectedIds] } }));
 });
 
 // ─── 3D hover → navigator row highlight ──────────────────────────────────────
@@ -1163,10 +1174,10 @@ document.getElementById('ctx-scroll').addEventListener('click', () => {
   if (!ctxTargetId) return;
   const id = ctxTargetId;
   ctxTargetId = null;
-  selectedId = id;
+  selectedIds.clear(); selectedIds.add(id); lastClickedId = id;
   ancestorIds(id).forEach(aid => { const n = byId(aid); if (n) n.expanded = true; });
   render();
-  document.dispatchEvent(new CustomEvent('asm-select', { detail: { id: selectedId } }));
+  document.dispatchEvent(new CustomEvent('asm-select', { detail: { ids: [id] } }));
   scrollRowIntoView(id);
 });
 
@@ -1379,8 +1390,8 @@ loader.load(
 );
 
 // ── State ─────────────────────────────────────────────────────────────────────
-let _selPart = null;
-let _hovPart = null;
+let _selParts = new Set();
+let _hovPart  = null;
 
 // ── Highlight ─────────────────────────────────────────────────────────────────
 function getCompId(partId) { return partId; }
@@ -1395,14 +1406,14 @@ function getMats(mesh) {
 }
 
 function applyHighlight() {
-  const sel = _selPart, hov = _hovPart;
-  const anyActive = !!(sel || hov);
+  const hov = _hovPart;
+  const anyActive = !!(_selParts.size || hov);
 
   allMeshes.forEach(m => {
     const pid      = m.userData.partId;
     const orig     = m.userData.origMats;
     const hovered  = hov && affectsId(pid, hov);
-    const selected = sel && affectsId(pid, sel);
+    const selected = _selParts.size > 0 && [..._selParts].some(s => affectsId(pid, s));
     const mats     = getMats(m);
 
     mats.forEach((mat, i) => {
@@ -1430,14 +1441,13 @@ function applyHighlight() {
 }
 
 // ── Event bridges ─────────────────────────────────────────────────────────────
-document.addEventListener('asm-select', e => { _selPart = e.detail.id; applyHighlight(); });
+document.addEventListener('asm-select', e => { _selParts = new Set(e.detail.ids || []); applyHighlight(); });
 document.addEventListener('nav-hover',  e => { _hovPart = e.detail.id; applyHighlight(); });
 
 document.addEventListener('asm-hidden-update', e => {
   const hiddenIds = new Set(e.detail.ids);
   allMeshes.forEach(m => { m.visible = !hiddenIds.has(m.userData.partId); });
-  // clear selection/hover if they were pointing at now-hidden parts
-  if (_selPart && hiddenIds.has(_selPart)) _selPart = null;
+  [..._selParts].forEach(id => { if (hiddenIds.has(id)) _selParts.delete(id); });
   if (_hovPart && hiddenIds.has(_hovPart)) _hovPart = null;
   applyHighlight();
 });
@@ -1457,8 +1467,18 @@ function raycastPart(e) {
 
 canvas.addEventListener('click', e => {
   const id = raycastPart(e);
-  _selPart = id === _selPart ? null : id;
-  document.dispatchEvent(new CustomEvent('3d-select', { detail: { id: _selPart } }));
+  if (e.ctrlKey || e.metaKey) {
+    if (id) {
+      if (_selParts.has(id)) _selParts.delete(id);
+      else _selParts.add(id);
+    }
+  } else {
+    if (id && _selParts.size === 1 && _selParts.has(id)) _selParts.clear();
+    else if (id) { _selParts.clear(); _selParts.add(id); }
+    else _selParts.clear();
+  }
+  applyHighlight();
+  document.dispatchEvent(new CustomEvent('3d-select', { detail: { ids: [..._selParts] } }));
 });
 
 canvas.addEventListener('mousemove', e => {
