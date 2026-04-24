@@ -281,11 +281,11 @@ tr.asm-root td {
 
 /* ── Table ── */
 .table-wrap { flex: 1; overflow: auto; background: #fff; border: 1px solid rgb(232, 232, 227); }
-.table-wrap::-webkit-scrollbar { width: 9px; height: 9px; }
+.table-wrap::-webkit-scrollbar { width: 6px; height: 6px; }
 .table-wrap::-webkit-scrollbar-track { background: transparent; }
 .table-wrap::-webkit-scrollbar-thumb { background: #ccc; border-radius: 4px; }
 .table-wrap::-webkit-scrollbar-thumb:hover { background: #aaa; }
-table { border-collapse: collapse; table-layout: fixed; }
+table { border-collapse: collapse; table-layout: fixed; margin: 4px 8px 8px 8px; border-radius: 2px; }
 thead { position: sticky; top: 0; z-index: 10; }
 th {
   background: rgb(232, 232, 227);
@@ -339,7 +339,7 @@ td.col-qty { text-align: center; }
 .xbtn:hover { color: #000; }
 .xbtn.leaf { cursor: default; color: #ccc; pointer-events: none; }
 .lbl { margin-left: 4px; overflow: hidden; text-overflow: ellipsis; font-size: 12px; color: #333; flex: 1; min-width: 0; }
-.lbl.p { font-weight: bold; color: #111; }
+.lbl.p { color: #111; }
 
 /* ── Node control buttons ── */
 .node-btns { display: flex; gap: 0; flex-shrink: 0; padding-right: 2px; }
@@ -354,7 +354,7 @@ td.col-qty { text-align: center; }
 tbody tr.row-hidden  td   { opacity: 0.45; }
 
 /* ── Cell text ── */
-.id-code  { font-family: 'Courier New', monospace; font-size: 10px; color: #555; }
+.id-code  {}
 .qty-pill { font-size: 11px; font-weight: bold; color: #333; }
 .mat-tag  { font-size: 11px; color: #333; }
 .geo-tag  { font-family: 'Courier New', monospace; font-size: 10px; color: #555; }
@@ -424,7 +424,7 @@ tbody tr.row-hidden  td   { opacity: 0.45; }
     <div class="tb-row">
       <div class="pflt-wrap" id="pflt-wrap">
         <button class="tb-btn sq" id="btn-pflt" title="Filter by type">
-          <svg width="11" height="11" viewBox="0 0 11 11" fill="none">
+          <svg width="14.6" height="14.6" viewBox="0 0 11 11" fill="none">
             <path d="M1 1.5h9L6.5 5v4.5l-2-1V5L1 1.5z" stroke="currentColor" stroke-width="1.2" stroke-linejoin="round"/>
           </svg>
         </button>
@@ -454,7 +454,7 @@ tbody tr.row-hidden  td   { opacity: 0.45; }
         <button id="btn-clear-search" title="Clear filter">&#x2715;</button>
       </div>
       <button class="tb-btn sq" id="btn-filter-tree" title="Toggle tree/flat results">
-        <svg width="12" height="10" viewBox="0 0 12 10" fill="currentColor">
+        <svg width="15.9" height="13.25" viewBox="0 0 12 10" fill="currentColor">
           <rect x="0" y="0" width="7" height="1.8" rx="0.4"/>
           <rect x="2" y="4.1" width="7" height="1.8" rx="0.4"/>
           <rect x="4" y="8.2" width="7" height="1.8" rx="0.4"/>
@@ -462,7 +462,7 @@ tbody tr.row-hidden  td   { opacity: 0.45; }
       </button>
       <div class="col-wrap">
         <button class="tb-btn sq" id="btn-cols" title="Configure columns">
-          <svg width="13" height="11" viewBox="0 0 13 11" fill="currentColor">
+          <svg width="17.2" height="14.6" viewBox="0 0 13 11" fill="currentColor">
             <rect x="0"  y="0" width="3" height="11"/>
             <rect x="5"  y="0" width="3" height="11"/>
             <rect x="10" y="0" width="3" height="11"/>
@@ -696,7 +696,8 @@ const colWidths = { ...DEFAULT_COL_WIDTHS };
 
 function applyTableWidth() {
   const tbl = document.getElementById('nav-table');
-  if (tbl.style.width !== '100%') tbl.style.width = '100%';
+  const w = 'calc(100% - 16px)';
+  if (tbl.style.width !== w) tbl.style.width = w;
 }
 
 // ─── Column drag-reorder ──────────────────────────────────────────────────────
@@ -856,8 +857,8 @@ function renderRows() {
   table.style.display = '';
   empty.style.display = 'none';
 
-  const ICON_EYE_ON  = `<svg width="12" height="8" viewBox="0 0 12 8" fill="none"><path d="M1 4C2.5 1 9.5 1 11 4C9.5 7 2.5 7 1 4Z" stroke="currentColor" stroke-width="1.15"/><circle cx="6" cy="4" r="1.5" stroke="currentColor" stroke-width="1.15"/></svg>`;
-  const ICON_EYE_OFF = `<svg width="12" height="10" viewBox="0 0 12 10" fill="none"><path d="M1 5C2.5 2 9.5 2 11 5C9.5 8 2.5 8 1 5Z" stroke="currentColor" stroke-width="1.15"/><circle cx="6" cy="5" r="1.5" stroke="currentColor" stroke-width="1.15"/><line x1="1.5" y1="1" x2="10.5" y2="9" stroke="currentColor" stroke-width="1.15" stroke-linecap="round"/></svg>`;
+  const ICON_EYE_ON  = `<svg width="15.9" height="10.6" viewBox="0 0 12 8" fill="none"><path d="M1 4C2.5 1 9.5 1 11 4C9.5 7 2.5 7 1 4Z" stroke="currentColor" stroke-width="1.15"/><circle cx="6" cy="4" r="1.5" stroke="currentColor" stroke-width="1.15"/></svg>`;
+  const ICON_EYE_OFF = `<svg width="15.9" height="13.25" viewBox="0 0 12 10" fill="none"><path d="M1 5C2.5 2 9.5 2 11 5C9.5 8 2.5 8 1 5Z" stroke="currentColor" stroke-width="1.15"/><circle cx="6" cy="5" r="1.5" stroke="currentColor" stroke-width="1.15"/><line x1="1.5" y1="1" x2="10.5" y2="9" stroke="currentColor" stroke-width="1.15" stroke-linecap="round"/></svg>`;
 
   document.getElementById('tbody').innerHTML = rows.map(n => {
     const nid = esc(n.id);
