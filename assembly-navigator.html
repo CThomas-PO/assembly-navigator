@@ -310,7 +310,6 @@ th.col-qty { text-align: center; }
 }
 .col-resizer:hover, .col-resizer.active { background: #0000284d; }
 
-
 tbody tr { border-bottom: 1px solid #efefef; cursor: default; }
 tbody tr:nth-child(even) { background: #fafafa; }
 tbody tr:hover    { background: #f0f0f0; }
@@ -353,7 +352,6 @@ td.col-qty { text-align: center; }
 tbody tr.row-hidden  td   { opacity: 0.45; }
 
 /* ── Cell text ── */
-.id-code  {}
 .qty-pill { font-size: 11px; font-weight: bold; color: #333; }
 .mat-tag  { font-size: 11px; color: #333; }
 .geo-tag  { font-family: 'Courier New', monospace; font-size: 10px; color: #555; }
@@ -566,9 +564,7 @@ let selectedIds   = new Set();
 let lastClickedId = null;
 let filterTree    = false;
 
-const WIDE_WIDTH    = 640;
 const DEFAULT_WIDTH = 350;
-let isWide = false;
 
 // ─── Build flat node list ─────────────────────────────────────────────────────
 function buildNodes(comps, depth = 0, parentId = null) {
@@ -596,8 +592,6 @@ function buildNodes(comps, depth = 0, parentId = null) {
 let nodeMap = new Map();
 function byId(id) { return nodeMap.get(id); }
 function rebuildNodeMap() { nodeMap = new Map(allNodes.map(n => [n.id, n])); }
-function isNodeLocked() { return false; }
-
 function descendants(id) {
   const result = [];
   function walk(nodeId) {
@@ -624,7 +618,6 @@ function isVisible(node) {
   return true;
 }
 
-function isNodeLocked(id) { const n = byId(id); return n ? n.locked : false; }
 function isNodeHidden(id) { const n = byId(id); return n ? n.hidden : false; }
 
 function dispatchHiddenUpdate() {
@@ -1009,8 +1002,6 @@ function loadColConfig() {
   } catch (_) {}
 }
 
-// renderColConfig removed — replaced by modal
-
 function clearFilters() {
   setSearch('');
 }
@@ -1026,14 +1017,9 @@ handle.addEventListener('mousedown', e => {
   handle.classList.add('active');
 
   const onMove = e => {
-    const w = Math.max(260, Math.min(window.innerWidth * 0.75, startX - e.clientX + startW));
-    // Note: panel is on the LEFT; dragging rightward means startX < e.clientX so w decreases
-    // Actually: panel is left, resize handle is on right edge.
-    // Dragging right (e.clientX > startX) → panel widens. Use: startW + (e.clientX - startX)
     const newW = Math.max(260, Math.min(window.innerWidth * 0.75, startW - (e.clientX - startX)));
     panel.style.width = newW + 'px';
     panel.style.transition = 'none';
-    isWide = newW > (DEFAULT_WIDTH + WIDE_WIDTH) / 2;
   };
 
   const onUp = () => {
@@ -1050,8 +1036,6 @@ handle.addEventListener('mousedown', e => {
 // ─── Panel close / reopen ─────────────────────────────────────────────────────
 const btnClosePanel = document.getElementById('btn-close-panel');
 const btnOpenPanel  = document.getElementById('btn-open-panel');
-
-function updateWidenIcon() {}   // no-op; kept so resize-handle code compiles
 
 btnClosePanel.addEventListener('click', () => {
   panel.style.transition = 'width 0.22s ease, min-width 0.22s ease';
@@ -1236,7 +1220,6 @@ const btnClearSrch = document.getElementById('btn-clear-search');
 
 function setSearch(val) {
   const wasFiltering = isFiltering();
-  const wasEmpty = !parseFilter(search).term.length;
   search = val;
   inpSearch.value = val;
   btnClearSrch.style.display = val ? 'block' : 'none';
@@ -1445,8 +1428,6 @@ let _selParts = new Set();
 let _hovPart  = null;
 
 // ── Highlight ─────────────────────────────────────────────────────────────────
-function getCompId(partId) { return partId; }
-
 function affectsId(meshPartId, targetId) {
   const rootId = window.ASSEMBLY?.assembly?.product_id ?? 'BIKE';
   return targetId === rootId || meshPartId === targetId || meshPartId.startsWith(targetId + '-');
