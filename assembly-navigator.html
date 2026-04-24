@@ -62,13 +62,42 @@ body {
 
 /* ── Panel title ── */
 .pnl-title {
-  background: #e4e4e4;
-  border-bottom: 1px solid #bbb;
-  padding: 5px 8px 5px 10px;
-  font-size: 1.25em; font-weight: bold;
-  color: #444; flex-shrink: 0;
+  background: #23233c;
+  border-bottom: none;
+  padding: 0 10px 0 14px;
+  font-size: 17.28px; font-weight: 500;
+  color: #fff; flex-shrink: 0;
+  height: 45px;
   display: flex; align-items: center; justify-content: space-between;
 }
+.pnl-close {
+  width: 20px; height: 20px; flex-shrink: 0;
+  display: inline-flex; align-items: center; justify-content: center;
+  background: none; border: none; cursor: pointer;
+  color: #fff; font-size: 15px; line-height: 1; padding: 0;
+  opacity: 0.75;
+}
+.pnl-close:hover { opacity: 1; }
+
+/* ── Navigator body (below header) ── */
+.nav-body {
+  flex: 1; min-height: 0;
+  display: flex; flex-direction: column;
+  overflow: hidden;
+  padding: 12.5156px;
+  background: #fff;
+}
+
+/* ── Panel reopen tab (viewer edge) ── */
+.panel-reopen {
+  position: absolute; right: 0; top: 50%; transform: translateY(-50%);
+  width: 18px; height: 52px;
+  background: #23233c; border: none; cursor: pointer;
+  color: #fff; font-size: 11px;
+  display: none; align-items: center; justify-content: center;
+  z-index: 20; border-radius: 4px 0 0 4px;
+}
+.panel-reopen:hover { background: #2e2e50; }
 
 /* ── Assembly root row ── */
 tr.asm-root td {
@@ -113,7 +142,7 @@ tr.asm-root td {
 
 /* ── Toolbar ── */
 .toolbar {
-  background: #f8f8f8; border-bottom: 1px solid #ccc;
+  background: #fff; border-bottom: 1px solid #e4e4e4;
   padding: 5px 7px; display: flex; flex-direction: column;
   gap: 4px; flex-shrink: 0;
 }
@@ -232,7 +261,7 @@ tr.asm-root td {
 
 /* ── Stats bar ── */
 .stats-bar {
-  background: #f8f8f8; border-bottom: 1px solid #e0e0e0;
+  background: #fff; border-bottom: 1px solid #e4e4e4;
   padding: 3px 8px;
   font-size: 10px; color: #777;
   display: flex; align-items: center; gap: 10px;
@@ -250,11 +279,11 @@ tr.asm-root td {
 .fbadge .x:hover { color: #111; }
 
 /* ── Table ── */
-.table-wrap { flex: 1; overflow: auto; background: #fff; }
+.table-wrap { flex: 1; overflow: auto; background: #fff; border: 1px solid rgb(232, 232, 227); }
 table { border-collapse: collapse; table-layout: fixed; }
 thead { position: sticky; top: 0; z-index: 10; }
 th {
-  background: #f0f0f0;
+  background: rgb(232, 232, 227);
   border-bottom: 2px solid #aaa;
   border-right: 1px solid #ddd;
   padding: 5px 7px;
@@ -376,11 +405,10 @@ tbody tr.row-hidden  td   { opacity: 0.45; }
 
   <div class="pnl-title">
     Assembly Navigator
-    <button class="hdr-btn" id="btn-widen" title="Expand panel" style="display:none">
-      <span id="widen-icon">&raquo;</span>
-    </button>
+    <button class="pnl-close" id="btn-close-panel" title="Close navigator">&#x2715;</button>
   </div>
 
+  <div class="nav-body">
   <div class="pnl-header" style="display:none">
     <div class="prod-text">
       <span class="prod-name" id="hdr-name">Loading…</span>
@@ -463,6 +491,7 @@ tbody tr.row-hidden  td   { opacity: 0.45; }
       <p>Adjust search or filters</p>
     </div>
   </div>
+  </div><!-- /.nav-body -->
 </div>
 
 <!-- ── Column chooser modal ──────────────────────────────────────────────────── -->
@@ -500,6 +529,7 @@ tbody tr.row-hidden  td   { opacity: 0.45; }
 
 <!-- ── 3D Viewer ──────────────────────────────────────────────────────────── -->
 <div class="viewer-area">
+  <button class="panel-reopen" id="btn-open-panel" title="Open navigator">&#9664;</button>
   <div id="viewer-disclaimer">This prototype is for demonstration purposes only of three new Navigator features: Filtering, Column Configuration, and Scroll to Item.</div>
   <canvas id="canvas-3d"></canvas>
   <div id="viewer-hint">Drag to orbit &nbsp;·&nbsp; Scroll to zoom &nbsp;·&nbsp; Select a part in the navigator to highlight it</div>
@@ -1014,7 +1044,6 @@ handle.addEventListener('mousedown', e => {
     panel.style.width = newW + 'px';
     panel.style.transition = 'none';
     isWide = newW > (DEFAULT_WIDTH + WIDE_WIDTH) / 2;
-    updateWidenIcon();
   };
 
   const onUp = () => {
@@ -1028,25 +1057,26 @@ handle.addEventListener('mousedown', e => {
   document.addEventListener('mouseup', onUp);
 });
 
-// ─── Panel expand/collapse toggle button ──────────────────────────────────────
-const widenBtn  = document.getElementById('btn-widen');
-const widenIcon = document.getElementById('widen-icon');
+// ─── Panel close / reopen ─────────────────────────────────────────────────────
+const btnClosePanel = document.getElementById('btn-close-panel');
+const btnOpenPanel  = document.getElementById('btn-open-panel');
 
-function updateWidenIcon() {
-  const expanded = panel.offsetWidth > (DEFAULT_WIDTH + WIDE_WIDTH) / 2;
-  widenIcon.innerHTML = expanded ? '&laquo;' : '&raquo;';
-  widenBtn.classList.toggle('on', expanded);
-}
+function updateWidenIcon() {}   // no-op; kept so resize-handle code compiles
 
-widenBtn.addEventListener('click', () => {
-  const currentW = panel.offsetWidth;
-  const goWide   = currentW < (DEFAULT_WIDTH + WIDE_WIDTH) / 2;
-  panel.style.transition = 'width 0.22s ease';
-  panel.style.width      = (goWide ? WIDE_WIDTH : DEFAULT_WIDTH) + 'px';
-  isWide = goWide;
-  updateWidenIcon();
-  // clear transition after animation
+btnClosePanel.addEventListener('click', () => {
+  panel.style.transition = 'width 0.22s ease, min-width 0.22s ease';
+  panel.style.width    = '0';
+  panel.style.minWidth = '0';
+  btnOpenPanel.style.display = 'flex';
   setTimeout(() => { panel.style.transition = ''; }, 240);
+});
+
+btnOpenPanel.addEventListener('click', () => {
+  btnOpenPanel.style.display = 'none';
+  panel.style.transition = 'width 0.22s ease, min-width 0.22s ease';
+  panel.style.width    = DEFAULT_WIDTH + 'px';
+  panel.style.minWidth = '260px';
+  setTimeout(() => { panel.style.transition = ''; panel.style.minWidth = ''; }, 240);
 });
 
 // ─── Pre-filter dropdown ──────────────────────────────────────────────────────
@@ -1281,7 +1311,6 @@ loadColConfig();
 loadNodeStates();
 rebuildNodeMap();
 renderHeader(); render();
-updateWidenIcon();
 </script>
 <script type="module">
 import * as THREE from 'three';
