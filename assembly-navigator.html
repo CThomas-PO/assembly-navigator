@@ -42,7 +42,8 @@ body {
   width: 350px; min-width: 260px; max-width: 80vw;
   height: 100%; display: flex; flex-direction: column;
   background: #fff;
-  border-left: 2px solid #aaa;
+  border-left: 1px solid #00002833;
+  box-shadow: 0 8px 16px #0000284d;
   position: relative; flex-shrink: 0; overflow: hidden;
   order: 1;
 }
@@ -178,7 +179,7 @@ tr.asm-root td {
 .tb-btn:hover { background: #ebebeb; }
 .tb-btn.active { background: #ddd; color: #111; font-weight: bold; }
 .tb-btn:disabled { opacity: 0.35; cursor: default; pointer-events: none; }
-.tb-btn.sq { padding: 3px 6px; }
+.tb-btn.sq { width: 20px; height: 20px; padding: 0; }
 
 /* ── Pre-filter dropdown ── */
 .pflt-wrap { position: relative; flex-shrink: 0; }
@@ -280,6 +281,10 @@ tr.asm-root td {
 
 /* ── Table ── */
 .table-wrap { flex: 1; overflow: auto; background: #fff; border: 1px solid rgb(232, 232, 227); }
+.table-wrap::-webkit-scrollbar { width: 9px; height: 9px; }
+.table-wrap::-webkit-scrollbar-track { background: transparent; }
+.table-wrap::-webkit-scrollbar-thumb { background: #ccc; border-radius: 4px; }
+.table-wrap::-webkit-scrollbar-thumb:hover { background: #aaa; }
 table { border-collapse: collapse; table-layout: fixed; }
 thead { position: sticky; top: 0; z-index: 10; }
 th {
@@ -287,7 +292,7 @@ th {
   border-bottom: 2px solid #aaa;
   border-right: 1px solid #ddd;
   padding: 5px 7px;
-  text-align: left; font-size: 1.125em; font-weight: bold;
+  text-align: left; font-size: 12px; font-weight: bold;
   color: #555;
   white-space: nowrap; user-select: none;
   overflow: hidden; text-overflow: ellipsis;
@@ -304,7 +309,7 @@ th.col-qty { text-align: center; }
   position: absolute; right: 0; top: 0; bottom: 0; width: 6px;
   cursor: col-resize !important; z-index: 20;
 }
-.col-resizer:hover, .col-resizer.active { background: rgba(0,0,0,0.18); }
+.col-resizer:hover, .col-resizer.active { background: #0000284d; }
 
 
 tbody tr { border-bottom: 1px solid #efefef; cursor: default; }
@@ -339,15 +344,13 @@ td.col-qty { text-align: center; }
 /* ── Node control buttons ── */
 .node-btns { display: flex; gap: 0; flex-shrink: 0; padding-right: 2px; }
 .node-btn {
-  width: 18px; height: 18px;
+  width: 20px; height: 20px;
   display: inline-flex; align-items: center; justify-content: center;
   background: none; border: none; cursor: pointer; padding: 0; flex-shrink: 0;
   color: #ccc; transition: color 0.1s;
 }
 .node-btn:hover { color: #333; }
-.node-btn.is-locked { color: #c07000; }
 .node-btn.is-hidden { color: #999; }
-tbody tr.row-locked .lbl { color: #999; font-style: italic; }
 tbody tr.row-hidden  td   { opacity: 0.45; }
 
 /* ── Cell text ── */
@@ -583,7 +586,6 @@ function buildNodes(comps, depth = 0, parentId = null) {
       depth, parentId,
       hasKids:  !!(c.sub_components?.length),
       expanded: true,
-      locked:   false,
       hidden:   false,
     });
     if (c.sub_components?.length)
@@ -595,6 +597,7 @@ function buildNodes(comps, depth = 0, parentId = null) {
 let nodeMap = new Map();
 function byId(id) { return nodeMap.get(id); }
 function rebuildNodeMap() { nodeMap = new Map(allNodes.map(n => [n.id, n])); }
+function isNodeLocked() { return false; }
 
 function descendants(id) {
   const result = [];
@@ -811,9 +814,9 @@ function bindHeaderResize() {
         ruler.textContent = (inner ?? td).textContent.trim();
         let w = ruler.offsetWidth + 16; // td padding 7px each side
         if (key === 'name') {
-          // add indent width + expand btn (14px) + two node btns (36px)
+          // add indent width + expand btn (14px) + one node btn (20px)
           const indent = td.querySelector('.indent');
-          w += (indent ? indent.offsetWidth : 0) + 14 + 36;
+          w += (indent ? indent.offsetWidth : 0) + 14 + 20;
         }
         if (w > maxW) maxW = w;
       });
@@ -853,16 +856,13 @@ function renderRows() {
   table.style.display = '';
   empty.style.display = 'none';
 
-  const ICON_LOCK_OPEN   = `<svg width="9" height="11" viewBox="0 0 9 11" fill="none"><rect x="0.6" y="4.8" width="7.8" height="5.6" rx="0.9" stroke="currentColor" stroke-width="1.15"/><path d="M2.8 4.8V3a1.7 1.7 0 0 1 3.4 0" stroke="currentColor" stroke-width="1.15" stroke-linecap="round"/></svg>`;
-  const ICON_LOCK_CLOSED = `<svg width="9" height="11" viewBox="0 0 9 11" fill="none"><rect x="0.6" y="4.8" width="7.8" height="5.6" rx="0.9" stroke="currentColor" stroke-width="1.15"/><path d="M2.8 4.8V3a1.7 1.7 0 0 1 3.4 0V4.8" stroke="currentColor" stroke-width="1.15" stroke-linecap="round"/></svg>`;
-  const ICON_EYE_ON      = `<svg width="12" height="8" viewBox="0 0 12 8" fill="none"><path d="M1 4C2.5 1 9.5 1 11 4C9.5 7 2.5 7 1 4Z" stroke="currentColor" stroke-width="1.15"/><circle cx="6" cy="4" r="1.5" stroke="currentColor" stroke-width="1.15"/></svg>`;
-  const ICON_EYE_OFF     = `<svg width="12" height="10" viewBox="0 0 12 10" fill="none"><path d="M1 5C2.5 2 9.5 2 11 5C9.5 8 2.5 8 1 5Z" stroke="currentColor" stroke-width="1.15"/><circle cx="6" cy="5" r="1.5" stroke="currentColor" stroke-width="1.15"/><line x1="1.5" y1="1" x2="10.5" y2="9" stroke="currentColor" stroke-width="1.15" stroke-linecap="round"/></svg>`;
+  const ICON_EYE_ON  = `<svg width="12" height="8" viewBox="0 0 12 8" fill="none"><path d="M1 4C2.5 1 9.5 1 11 4C9.5 7 2.5 7 1 4Z" stroke="currentColor" stroke-width="1.15"/><circle cx="6" cy="4" r="1.5" stroke="currentColor" stroke-width="1.15"/></svg>`;
+  const ICON_EYE_OFF = `<svg width="12" height="10" viewBox="0 0 12 10" fill="none"><path d="M1 5C2.5 2 9.5 2 11 5C9.5 8 2.5 8 1 5Z" stroke="currentColor" stroke-width="1.15"/><circle cx="6" cy="5" r="1.5" stroke="currentColor" stroke-width="1.15"/><line x1="1.5" y1="1" x2="10.5" y2="9" stroke="currentColor" stroke-width="1.15" stroke-linecap="round"/></svg>`;
 
   document.getElementById('tbody').innerHTML = rows.map(n => {
     const nid = esc(n.id);
     const nodeBtns = `<span class="node-btns">
       <button class="node-btn vis-btn ${n.hidden ? 'is-hidden' : ''}" data-id="${nid}" data-action="vis" title="${n.hidden ? 'Show' : 'Hide'}">${n.hidden ? ICON_EYE_OFF : ICON_EYE_ON}</button>
-      <button class="node-btn lock-btn ${n.locked ? 'is-locked' : ''}" data-id="${nid}" data-action="lock" title="${n.locked ? 'Unlock' : 'Lock'}">${n.locked ? ICON_LOCK_CLOSED : ICON_LOCK_OPEN}</button>
     </span>`;
 
     const cells = COLS.filter(c => c.visible).map(col => {
@@ -898,8 +898,7 @@ function renderRows() {
     const cls = [
       n.depth === 0 ? 'asm-root' : '',
       selectedIds.has(n.id) ? 'selected' : '',
-      isNodeLocked(n.id) ? 'row-locked' : '',
-      isNodeHidden(n.id) ? 'row-hidden'  : '',
+      isNodeHidden(n.id) ? 'row-hidden' : '',
     ].filter(Boolean).join(' ');
     return `<tr data-id="${nid}" class="${cls}">${cells}</tr>`;
   }).join('');
@@ -917,16 +916,9 @@ function renderRows() {
       e.stopPropagation();
       const n = byId(btn.dataset.id);
       if (!n) return;
-      if (btn.dataset.action === 'lock') {
-        n.locked = !n.locked;
-        descendants(n.id).forEach(d => { d.locked = n.locked; });
-        [...selectedIds].forEach(sid => { if (isNodeLocked(sid)) selectedIds.delete(sid); });
-        document.dispatchEvent(new CustomEvent('asm-select', { detail: { ids: [...selectedIds] } }));
-      } else if (btn.dataset.action === 'vis') {
-        n.hidden = !n.hidden;
-        descendants(n.id).forEach(d => { d.hidden = n.hidden; });
-        dispatchHiddenUpdate();
-      }
+      n.hidden = !n.hidden;
+      descendants(n.id).forEach(d => { d.hidden = n.hidden; });
+      dispatchHiddenUpdate();
       saveNodeStates();
       render();
     });
@@ -935,7 +927,6 @@ function renderRows() {
   document.getElementById('tbody').querySelectorAll('tr').forEach(tr => {
     tr.addEventListener('click', e => {
       const id = tr.dataset.id;
-      if (isNodeLocked(id)) return;
       if (e.ctrlKey || e.metaKey) {
         if (selectedIds.has(id)) selectedIds.delete(id);
         else { selectedIds.add(id); lastClickedId = id; }
@@ -945,7 +936,7 @@ function renderRows() {
         const b = vis.findIndex(n => n.id === id);
         if (a >= 0 && b >= 0) {
           const [lo, hi] = a < b ? [a, b] : [b, a];
-          vis.slice(lo, hi + 1).forEach(n => { if (!isNodeLocked(n.id)) selectedIds.add(n.id); });
+          vis.slice(lo, hi + 1).forEach(n => { selectedIds.add(n.id); });
         }
       } else {
         if (selectedIds.size === 1 && selectedIds.has(id)) { selectedIds.clear(); lastClickedId = null; }
@@ -985,14 +976,14 @@ const NODE_STATE_KEY = 'asm-nav-node-states';
 
 function saveNodeStates() {
   const state = {};
-  allNodes.forEach(n => { if (n.locked || n.hidden) state[n.id] = { locked: n.locked, hidden: n.hidden }; });
+  allNodes.forEach(n => { if (n.hidden) state[n.id] = { hidden: true }; });
   localStorage.setItem(NODE_STATE_KEY, JSON.stringify(state));
 }
 
 function loadNodeStates() {
   try {
     const saved = JSON.parse(localStorage.getItem(NODE_STATE_KEY) || '{}');
-    allNodes.forEach(n => { if (saved[n.id]) { n.locked = !!saved[n.id].locked; n.hidden = !!saved[n.id].hidden; } });
+    allNodes.forEach(n => { if (saved[n.id]) n.hidden = !!saved[n.id].hidden; });
   } catch (_) {}
 }
 
@@ -1303,7 +1294,6 @@ allNodes = [{
   parentId: null,
   hasKids:  true,
   expanded: true,
-  locked:   false,
   hidden:   false,
 }, ...componentNodes];
 renderProductHeader();
