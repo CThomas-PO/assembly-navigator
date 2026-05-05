@@ -1358,6 +1358,7 @@ loader.load(
 
     gltf.scene.traverse(node => {
       if (!node.isMesh) return;
+      if (['BoxFace1','BoxFace2','BoxFace3','BoxFace4'].includes(node.name)) { node.visible = false; return; }
 
       const compId = meshMap[node.name] ?? rootId;
       node.userData.partId = compId;
