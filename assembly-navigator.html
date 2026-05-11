@@ -627,47 +627,58 @@ function dispatchHiddenUpdate() {
 document.addEventListener('asm-request-hidden-sync', dispatchHiddenUpdate);
 
 // ─── Filter parsing ───────────────────────────────────────────────────────────
-// Supports:  plain text, :material <term>, :geometry <term>
-function parseFilter(raw) {
-  const m = raw.match(/^:(\w+)\s*(.*)/s);
-  if (m) return { field: m[1].toLowerCase(), term: m[2].trim().toLowerCase() };
-  return { field: null, term: raw.trim().toLowerCase() };
+// Supports compound filters: plain text, :field term, or multiple e.g. ":material rubber :visible"
+// All clauses are AND-matched.
+function parseClauses(raw) {
+  const clauses = [];
+  for (const part of raw.trim().split(/(?=:\w)/)) {
+    const trimmed = part.trim();
+    if (!trimmed) continue;
+    if (trimmed.startsWith(':')) {
+      const m = trimmed.match(/^:(\w+)\s*(.*)/s);
+      if (m) clauses.push({ field: m[1].toLowerCase(), term: m[2].trim().toLowerCase() });
+    } else {
+      clauses.push({ field: null, term: trimmed.toLowerCase() });
+    }
+  }
+  return clauses;
 }
 
 // ─── Visible rows (filter + expansion) ───────────────────────────────────────
 function isFiltering() {
-  const { field, term } = parseFilter(search);
-  return term.length > 0 || field === 'visible' || field === 'hidden';
+  return parseClauses(search).some(c => c.term.length > 0 || c.field === 'visible' || c.field === 'hidden');
 }
 
-function nodeMatchesSearch(n, field, term) {
-  const matchesTerm = !term || [n.name, n.id, n.mat, n.geo, n.spec, n.desc].some(v => v.toLowerCase().includes(term));
-  if (field === 'visible')  return !isNodeHidden(n.id) && matchesTerm;
-  if (field === 'hidden')   return isNodeHidden(n.id)  && matchesTerm;
-  if (field === 'material') return n.mat.toLowerCase().includes(term);
-  if (field === 'geometry') return n.geo.toLowerCase().includes(term);
-  return matchesTerm;
+function nodeMatchesSearch(n, clauses) {
+  return clauses.every(({ field, term }) => {
+    const matchesTerm = !term || [n.name, n.id, n.mat, n.geo, n.spec, n.desc].some(v => v.toLowerCase().includes(term));
+    if (field === 'visible')  return !isNodeHidden(n.id) && matchesTerm;
+    if (field === 'hidden')   return isNodeHidden(n.id)  && matchesTerm;
+    if (field === 'material') return n.mat.toLowerCase().includes(term);
+    if (field === 'geometry') return n.geo.toLowerCase().includes(term);
+    return matchesTerm;
+  });
 }
 
 function autoExpandFilterAncestors() {
   if (!filterTree || !isFiltering()) return;
-  const { field, term } = parseFilter(search);
-  allNodes.filter(n => nodeMatchesSearch(n, field, term)).forEach(match => {
+  const clauses = parseClauses(search);
+  allNodes.filter(n => nodeMatchesSearch(n, clauses)).forEach(match => {
     let n = byId(match.parentId);
     while (n) { n.expanded = true; n = byId(n.parentId); }
   });
 }
 
 function visibleNodes() {
-  const { field, term } = parseFilter(search);
+  const clauses = parseClauses(search);
   if (!isFiltering()) return allNodes.filter(n => isVisible(n));
 
   if (!filterTree) {
-    return allNodes.filter(n => nodeMatchesSearch(n, field, term));
+    return allNodes.filter(n => nodeMatchesSearch(n, clauses));
   }
 
   // Tree mode: matches + all ancestors, respecting expansion state
-  const matchIds = new Set(allNodes.filter(n => nodeMatchesSearch(n, field, term)).map(n => n.id));
+  const matchIds = new Set(allNodes.filter(n => nodeMatchesSearch(n, clauses)).map(n => n.id));
   const showIds  = new Set(matchIds);
   matchIds.forEach(id => {
     let n = byId(id);
@@ -1065,7 +1076,8 @@ pfltPanel.querySelectorAll('.pflt-opt').forEach(opt => {
   opt.addEventListener('click', () => {
     pfltPanel.classList.remove('open');
     pfltBtn.classList.remove('active');
-    setSearch(opt.dataset.prefix);
+    const current = search.trimEnd();
+    setSearch(current ? current + ' ' + opt.dataset.prefix : opt.dataset.prefix);
     inpSearch.focus();
     inpSearch.setSelectionRange(inpSearch.value.length, inpSearch.value.length);
   });
