@@ -642,8 +642,13 @@ function parseClauses(raw) {
     const trimmed = part.trim();
     if (!trimmed) continue;
     if (trimmed.startsWith(':')) {
-      const m = trimmed.match(/^:(\w+)\s*(.*)/s);
-      if (m) clauses.push({ field: m[1].toLowerCase(), term: m[2].trim().toLowerCase() });
+      // :field [firstWord] [remaining words become a plain-text clause]
+      const m = trimmed.match(/^:(\w+)(?:\s+(\S+))?(.*)/s);
+      if (m) {
+        clauses.push({ field: m[1].toLowerCase(), term: (m[2] || '').toLowerCase() });
+        const extra = (m[3] || '').trim();
+        if (extra) clauses.push({ field: null, term: extra.toLowerCase() });
+      }
     } else {
       clauses.push({ field: null, term: trimmed.toLowerCase() });
     }
