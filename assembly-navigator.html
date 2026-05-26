@@ -634,26 +634,40 @@ function dispatchHiddenUpdate() {
 document.addEventListener('asm-request-hidden-sync', dispatchHiddenUpdate);
 
 // ─── Filter parsing ───────────────────────────────────────────────────────────
-// Supports compound filters: plain text, :field term, or multiple e.g. ":material rubber :visible"
+// Supports compound AND filters. Tokens:
+//   :field "quoted term"  →  field-scoped exact phrase
+//   :field word           →  field-scoped single word (wildcard * allowed)
+//   :field                →  field-only (e.g. :visible, :hidden)
+//   "quoted phrase"       →  exact phrase matched against any field
+//   word                  →  plain word (wildcard * allowed) matched against any field
 // All clauses are AND-matched.
 function parseClauses(raw) {
   const clauses = [];
-  for (const part of raw.trim().split(/(?=:\w)/)) {
-    const trimmed = part.trim();
-    if (!trimmed) continue;
-    if (trimmed.startsWith(':')) {
-      // :field [firstWord] [remaining words become a plain-text clause]
-      const m = trimmed.match(/^:(\w+)(?:\s+(\S+))?(.*)/s);
-      if (m) {
-        clauses.push({ field: m[1].toLowerCase(), term: (m[2] || '').toLowerCase() });
-        const extra = (m[3] || '').trim();
-        if (extra) clauses.push({ field: null, term: extra.toLowerCase() });
-      }
-    } else {
-      clauses.push({ field: null, term: trimmed.toLowerCase() });
+  // Tokenise respecting quotes; : starts a field token; * is a wildcard in terms
+  const re = /:(\w+)(?:\s+"([^"]*)"|\s+([^\s":]+))?|"([^"]*)"|([^\s":]+)/g;
+  let m;
+  const str = raw.trim();
+  while ((m = re.exec(str)) !== null) {
+    if (m[1] !== undefined) {
+      // :field clause — term may be quoted (m[2]), a single word (m[3]), or absent
+      clauses.push({ field: m[1].toLowerCase(), term: (m[2] ?? m[3] ?? '').toLowerCase() });
+    } else if (m[4] !== undefined) {
+      clauses.push({ field: null, term: m[4].toLowerCase() });   // "quoted phrase"
+    } else if (m[5] !== undefined) {
+      clauses.push({ field: null, term: m[5].toLowerCase() });   // plain word / wildcard
     }
   }
   return clauses;
+}
+
+// Returns true if str matches term, supporting * wildcard and exact substring.
+function matchTerm(str, term) {
+  if (!term) return true;
+  if (term.includes('*')) {
+    const pat = term.replace(/[.+^${}()|[\]\\]/g, '\\$&').replace(/\*/g, '.*');
+    return new RegExp(pat, 'i').test(str);
+  }
+  return str.toLowerCase().includes(term);
 }
 
 // ─── Visible rows (filter + expansion) ───────────────────────────────────────
@@ -663,12 +677,12 @@ function isFiltering() {
 
 function nodeMatchesSearch(n, clauses) {
   return clauses.every(({ field, term }) => {
-    const matchesTerm = !term || [n.name, n.id, n.mat, n.geo, n.spec, n.desc].some(v => v.toLowerCase().includes(term));
-    if (field === 'visible')  return !isNodeHidden(n.id) && matchesTerm;
-    if (field === 'hidden')   return isNodeHidden(n.id)  && matchesTerm;
-    if (field === 'material') return n.mat.toLowerCase().includes(term);
-    if (field === 'geometry') return n.geo.toLowerCase().includes(term);
-    return matchesTerm;
+    const anyField = !term || [n.name, n.id, n.mat, n.geo, n.spec, n.desc].some(v => matchTerm(v, term));
+    if (field === 'visible')  return !isNodeHidden(n.id) && anyField;
+    if (field === 'hidden')   return isNodeHidden(n.id)  && anyField;
+    if (field === 'material') return matchTerm(n.mat, term);
+    if (field === 'geometry') return matchTerm(n.geo, term);
+    return anyField;
   });
 }
 
