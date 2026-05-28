@@ -1245,7 +1245,12 @@ document.getElementById('ctx-scroll').addEventListener('click', () => {
   ancestorIds(id).forEach(aid => { const n = byId(aid); if (n) n.expanded = true; });
   render();
   document.dispatchEvent(new CustomEvent('asm-select', { detail: { ids: [id] } }));
-  scrollRowIntoView(id);
+  if (btnOpenPanel.style.display === 'flex') {
+    btnOpenPanel.click();
+    setTimeout(() => scrollRowIntoView(id), 240);
+  } else {
+    scrollRowIntoView(id);
+  }
 });
 
 // Hide context menu on any click or Escape
