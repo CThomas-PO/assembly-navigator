@@ -1201,6 +1201,7 @@ const ctxMenu = document.getElementById('ctx-menu');
 let   ctxTargetId = null;
 
 document.addEventListener('3d-contextmenu', e => {
+  if (selectedIds.size > 1) return;
   ctxTargetId = e.detail.id;
   // Keep menu inside viewport
   const menuW = 160, menuH = 36;
