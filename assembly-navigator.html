@@ -1203,6 +1203,10 @@ let   ctxTargetId = null;
 document.addEventListener('3d-contextmenu', e => {
   if (selectedIds.size > 1) return;
   ctxTargetId = e.detail.id;
+  // Select the right-clicked item so it stays highlighted
+  selectedIds.clear(); selectedIds.add(ctxTargetId); lastClickedId = ctxTargetId;
+  render();
+  document.dispatchEvent(new CustomEvent('asm-select', { detail: { ids: [ctxTargetId] } }));
   // Keep menu inside viewport
   const menuW = 160, menuH = 36;
   const x = Math.min(e.detail.x, window.innerWidth  - menuW);
